@@ -5,14 +5,15 @@ import 'package:flutter/services.dart';
 import 'settings_service.dart';
 
 class SoundFx {
-  static final AudioPlayer _sfxPlayer = AudioPlayer();
+  static AudioPlayer? _sfxPlayer;
+  static AudioPlayer get _player => _sfxPlayer ??= AudioPlayer();
   static final Map<String, Uint8List> _wavCache = {};
   static bool _isInitialized = false;
 
   static Future<void> init() async {
     if (_isInitialized) return;
     try {
-      await _sfxPlayer.setReleaseMode(ReleaseMode.stop);
+      await _player.setReleaseMode(ReleaseMode.stop);
       _isInitialized = true;
     } catch (_) {}
   }
@@ -59,8 +60,8 @@ class SoundFx {
   ) async {
     try {
       final wav = _wavCache.putIfAbsent(key, generator);
-      await _sfxPlayer.stop();
-      await _sfxPlayer.play(BytesSource(wav));
+      await _player.stop();
+      await _player.play(BytesSource(wav));
     } catch (_) {}
   }
 

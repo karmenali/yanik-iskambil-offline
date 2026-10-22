@@ -95,6 +95,13 @@ class AdService {
       },
     );
 
-    _interstitialAd!.show();
+    try {
+      _interstitialAd!.show();
+    } catch (e) {
+      debugPrint('Reklam gösterim hatası: $e');
+      _interstitialAd = null;
+      loadInterstitialAd();
+      onDismissed();
+    }
   }
 }
