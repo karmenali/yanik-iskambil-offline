@@ -1,0 +1,29 @@
+name: yanik_offline
+description: "Yanık İskambil VIP - Çevrimdışı Tek Kişilik İskambil Oyunu"
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.12.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  shared_preferences: ^2.5.6
+  audioplayers: ^6.8.1
+  google_mobile_ads: ^9.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/table_bg.jpg
+    - assets/images/game_logo.jpg
+    - assets/images/joker_art.jpg
