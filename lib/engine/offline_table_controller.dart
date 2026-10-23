@@ -30,6 +30,18 @@ class OfflinePlayer {
         openedMelds = openedMelds ?? [];
 }
 
+class RoundHistoryEntry {
+  final int roundNumber;
+  final String? finisherUserId;
+  final Map<String, int> scoresByUser;
+
+  const RoundHistoryEntry({
+    required this.roundNumber,
+    required this.finisherUserId,
+    required this.scoresByUser,
+  });
+}
+
 class OfflineTableController extends ChangeNotifier {
   static final OfflineTableController instance = OfflineTableController._internal();
   OfflineTableController._internal();
@@ -55,6 +67,7 @@ class OfflineTableController extends ChangeNotifier {
   int? lastFinisherSeat;
   int? lastFalseDeclarerSeat;
   String? winnerMessage;
+  final List<RoundHistoryEntry> roundHistory = [];
 
   Timer? _botTimer;
 
@@ -126,8 +139,9 @@ class OfflineTableController extends ChangeNotifier {
     _botTimer?.cancel();
     final settings = SettingsService.instance;
 
+    roundHistory.clear();
     players.clear();
-    // 0: İnsan Oyuncu
+    // 0: İnsan Oyuncu (Sol-Alt)
     players.add(OfflinePlayer(
       userId: 'human',
       username: settings.playerName,
@@ -135,7 +149,7 @@ class OfflineTableController extends ChangeNotifier {
       seatIndex: 0,
       isBot: false,
     ));
-    // 1: Bot Doğu
+    // 1: Sağ-Alt (Senin sağındaki oyuncu - Sağdan sola akışta ilk sıra bunda)
     players.add(OfflinePlayer(
       userId: 'bot_1',
       username: 'Ahmet',
@@ -143,7 +157,7 @@ class OfflineTableController extends ChangeNotifier {
       seatIndex: 1,
       isBot: true,
     ));
-    // 2: Bot Kuzey
+    // 2: Sağ-Üst (Karşı sağdaki oyuncu)
     players.add(OfflinePlayer(
       userId: 'bot_2',
       username: 'Zeynep',
@@ -151,7 +165,7 @@ class OfflineTableController extends ChangeNotifier {
       seatIndex: 2,
       isBot: true,
     ));
-    // 3: Bot Batı
+    // 3: Sol-Üst (Senin solundaki oyuncu)
     players.add(OfflinePlayer(
       userId: 'bot_3',
       username: 'Mehmet',
@@ -537,6 +551,20 @@ class OfflineTableController extends ChangeNotifier {
     }
 
     lastShowdown = results;
+
+    // Otantik çetele için tur kaydını ekle
+    final scoresMap = <String, int>{};
+    for (final r in results) {
+      scoresMap[r.userId] = r.roundPenalty;
+    }
+    roundHistory.add(RoundHistoryEntry(
+      roundNumber: roundNumber,
+      finisherUserId: finisherSeat != null && finisherSeat >= 0 && finisherSeat < players.length
+          ? players[finisherSeat].userId
+          : null,
+      scoresByUser: scoresMap,
+    ));
+
     if (finisherSeat == 0) {
       SoundFx.playCelebration();
     } else {

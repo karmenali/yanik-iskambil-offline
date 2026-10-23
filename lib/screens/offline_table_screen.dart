@@ -431,7 +431,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
     );
   }
 
-  /// Orijinal Masa Matematiksel Koltuk Pozisyonları (Taşma / Çarpışma Kesinlikle Olmaz)
+  /// Orijinal Masa Matematiksel Koltuk Pozisyonları (Sağdan Sola / Saat Yönünün Tersine)
   List<Offset> _calculateRelativeSeatPositions(
     int count,
     int mySeatIdx,
@@ -442,27 +442,27 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
     final double leftX = 6.0;
     final double rightX = w - avatarWidth - 6.0;
 
-    // Saat yönünde 4 koltuk:
+    // Sağdan sola (saat yönünün tersine) 4 koltuk:
     // 0: Sen (Sol-Alt - ortadaki gösterge kartına asla değmez)
-    // 1: Sol-Üst
-    // 2: Sağ-Üst
-    // 3: Sağ-Alt
-    final clockwiseSlots = [
+    // 1: Sağ-Alt (Senin sağındaki oyuncu - Ahmet)
+    // 2: Sağ-Üst (Zeynep)
+    // 3: Sol-Üst (Mehmet - Senin solundaki oyuncu)
+    final counterClockwiseSlots = [
       Offset(leftX + 2, h * 0.65), // 0: Sen (Sol-Alt)
-      Offset(leftX + 4, h * 0.03), // 1: Sol-Üst
+      Offset(rightX - 2, h * 0.65), // 1: Sağ-Alt (Senin sağındaki oyuncu)
       Offset(rightX - 4, h * 0.03), // 2: Sağ-Üst
-      Offset(rightX - 2, h * 0.65), // 3: Sağ-Alt
+      Offset(leftX + 4, h * 0.03), // 3: Sol-Üst (Senin solundaki oyuncu)
     ];
 
     final result = List<Offset>.filled(count, Offset.zero);
     for (int seatIdx = 0; seatIdx < count; seatIdx++) {
       final rel = (seatIdx - mySeatIdx + count) % count;
-      result[seatIdx] = clockwiseSlots[rel];
+      result[seatIdx] = counterClockwiseSlots[rel];
     }
     return result;
   }
 
-  /// Orijinal 76px Dairesel Avatar Bileşeni (Sıra Efekti, 'D' Dağıtan Rozeti, Puan Pili)
+  /// Orijinal 76px Dairesel Avatar Bileşeni (Sabit Neon Yeşil Çember, 'D' Dağıtan Rozeti, Puan Pili)
   Widget _buildZyngaCircularSeatAvatar({
     required OfflinePlayer seat,
     required int seatIndex,
@@ -472,35 +472,35 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
     final isDealer = _ctrl.dealerSeat == seatIndex;
     final avatar = VipAvatar.fromKey(seat.avatar);
 
-    return SizedBox(
-      width: 76,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Stack(
-            alignment: Alignment.center,
-            children: [
-              // Sıra Çemberi Efekti
-              if (isCurrentTurn)
-                Container(
-                  width: 54,
-                  height: 54,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFF22C55E).withValues(alpha: 0.65),
-                        blurRadius: 12,
-                        spreadRadius: 1.5,
+    return RepaintBoundary(
+      child: SizedBox(
+        width: 76,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                // Sabit %100 Dolu Neon Yeşil Halka (Dönmez, sabit ve temiz durur)
+                if (isCurrentTurn)
+                  Container(
+                    width: 54,
+                    height: 54,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF22C55E),
+                        width: 3.2,
                       ),
-                    ],
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF22C55E).withValues(alpha: 0.65),
+                          blurRadius: 12,
+                          spreadRadius: 1.5,
+                        ),
+                      ],
+                    ),
                   ),
-                  child: const CircularProgressIndicator(
-                    strokeWidth: 3.5,
-                    backgroundColor: Colors.black45,
-                    valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF22C55E)),
-                  ),
-                ),
 
               // Avatar Dairesi
               Container(
@@ -630,10 +630,11 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   /// Masa Ortası: Gösterge Jokeri (Sol) + 3D Kapalı Deste (Orta) + Atılan Kağıt (Sağ)
+  /// Sabit 72px genişlikli yuvalar sayesinde kart çekildiğinde veya atıldığında ASLA kayma olmaz!
   Widget _buildCenterTableFeltCards() {
     final indicator = _ctrl.indicatorCard;
     final drawCount = _ctrl.drawPileCount;
@@ -641,132 +642,40 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
     final canDrawNow = _ctrl.isHumanTurn && !_ctrl.hasDrawnThisTurn;
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      width: 260,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
-        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // 1. GÖSTERGE JOKERİ
-          Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (indicator != null)
-                PlayingCardWidget(
-                  card: indicator,
-                  wildRank: _ctrl.wildRank,
-                  showWildHints: true,
-                  width: 52,
-                  height: 74,
-                )
-              else
-                const SizedBox(width: 52, height: 74),
-              const SizedBox(height: 3),
-              Text(
-                indicator != null
-                    ? 'GÖSTERGE ${indicator.rankLabel}${indicator.suitSymbol}'
-                    : 'GÖSTERGE',
-                style: const TextStyle(
-                  color: Color(0xFFFDE047),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 9.5,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 4)],
-                ),
-              ),
-            ],
-          ),
-
-          const SizedBox(width: 12),
-
-          // 2. 3D KAPALI DESTE
-          GestureDetector(
-            onTap: canDrawNow ? () => _ctrl.humanDrawCard(fromDiscard: false) : null,
+          // 1. GÖSTERGE JOKERİ (72px sabit genişlik)
+          SizedBox(
+            width: 72,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 220),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(10),
-                    boxShadow: canDrawNow
-                        ? [
-                            BoxShadow(
-                              color: const Color(0xFF22C55E).withValues(alpha: 0.8),
-                              blurRadius: 14,
-                              spreadRadius: 2,
-                            ),
-                          ]
-                        : null,
-                  ),
-                  child: CardBackWidget(
+                if (indicator != null)
+                  PlayingCardWidget(
+                    card: indicator,
+                    wildRank: _ctrl.wildRank,
+                    showWildHints: true,
                     width: 52,
                     height: 74,
-                    deckCount: drawCount,
-                  ),
-                ),
+                  )
+                else
+                  const SizedBox(width: 52, height: 74),
                 const SizedBox(height: 3),
                 Text(
-                  canDrawNow ? '👇 ÇEK ($drawCount)' : 'DESTE $drawCount',
-                  style: TextStyle(
-                    color: canDrawNow
-                        ? const Color(0xFF4ADE80)
-                        : const Color(0xFFFDE047),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 9.5,
-                    shadows: const [
-                      Shadow(color: Colors.black, blurRadius: 4),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const SizedBox(width: 12),
-
-          // 3. ATILAN KAĞIT (Tıklanınca Geçmişi Açar)
-          GestureDetector(
-            onTap: () => _showDiscardHistorySheet(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                discardTop != null
-                    ? PlayingCardWidget(
-                        card: discardTop,
-                        wildRank: _ctrl.wildRank,
-                        showWildHints: _ctrl.isAssisted,
-                        width: 52,
-                        height: 74,
-                      )
-                    : Container(
-                        width: 52,
-                        height: 74,
-                        decoration: BoxDecoration(
-                          color: Colors.black.withValues(alpha: 0.28),
-                          borderRadius: BorderRadius.circular(9),
-                          border: Border.all(
-                            color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'ATILAN',
-                            style: TextStyle(
-                              color: Colors.white38,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 8.5,
-                            ),
-                          ),
-                        ),
-                      ),
-                const SizedBox(height: 3),
-                Text(
-                  discardTop != null
-                      ? 'ATILAN ${discardTop.rankLabel}${discardTop.suitSymbol}'
-                      : 'ATILAN',
+                  indicator != null
+                      ? 'GÖSTERGE ${indicator.rankLabel}${indicator.suitSymbol}'
+                      : 'GÖSTERGE',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  textAlign: TextAlign.center,
                   style: const TextStyle(
                     color: Color(0xFFFDE047),
                     fontWeight: FontWeight.w900,
@@ -775,6 +684,113 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
                   ),
                 ),
               ],
+            ),
+          ),
+
+          // 2. 3D KAPALI DESTE (72px sabit genişlik)
+          SizedBox(
+            width: 72,
+            child: GestureDetector(
+              onTap: canDrawNow ? () => _ctrl.humanDrawCard(fromDiscard: false) : null,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 220),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: canDrawNow
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF22C55E).withValues(alpha: 0.8),
+                                blurRadius: 14,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: CardBackWidget(
+                      width: 52,
+                      height: 74,
+                      deckCount: drawCount,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    canDrawNow ? '👇 ÇEK ($drawCount)' : 'DESTE $drawCount',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: canDrawNow
+                          ? const Color(0xFF4ADE80)
+                          : const Color(0xFFFDE047),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 9.5,
+                      shadows: const [
+                        Shadow(color: Colors.black, blurRadius: 4),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // 3. ATILAN KAĞIT (72px sabit genişlik)
+          SizedBox(
+            width: 72,
+            child: GestureDetector(
+              onTap: () => _showDiscardHistorySheet(),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  discardTop != null
+                      ? PlayingCardWidget(
+                          card: discardTop,
+                          wildRank: _ctrl.wildRank,
+                          showWildHints: _ctrl.isAssisted,
+                          width: 52,
+                          height: 74,
+                        )
+                      : Container(
+                          width: 52,
+                          height: 74,
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.28),
+                            borderRadius: BorderRadius.circular(9),
+                            border: Border.all(
+                              color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
+                            ),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'ATILAN',
+                              style: TextStyle(
+                                color: Colors.white38,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 8.5,
+                              ),
+                            ),
+                          ),
+                        ),
+                  const SizedBox(height: 3),
+                  Text(
+                    discardTop != null
+                        ? 'ATILAN ${discardTop.rankLabel}${discardTop.suitSymbol}'
+                        : 'ATILAN',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Color(0xFFFDE047),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 9.5,
+                      shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -1472,90 +1488,306 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
   }
 
   // ===========================================================================
-  // 5. 101 PUAN TABLOSU MODALI (Tüm Oyuncuların Skorları)
+  // 5. 101 PUAN ÇETELESİ MODALI (Orijinal Kareli Kağıt / Defter Tasarımı)
   // ===========================================================================
   Widget _buildScoreboardOverlay() {
     final seats = _ctrl.players;
+    final history = _ctrl.roundHistory;
 
     return Positioned.fill(
       child: GestureDetector(
         onTap: () => setState(() => _showScoreboardModal = false),
         child: Container(
-          color: Colors.black87,
+          color: Colors.black.withValues(alpha: 0.85),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
           child: Center(
             child: GestureDetector(
               onTap: () {},
               child: Container(
-                width: 320,
+                constraints: const BoxConstraints(maxWidth: 480, maxHeight: 620),
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F2B1F),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFFD4AF37), width: 1.8),
+                  // Otantik sarımsı kareli defter kağıdı görünümü
+                  color: const Color(0xFFFBF8EE),
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(
+                    color: const Color(0xFFB45309),
+                    width: 2.2,
+                  ),
                   boxShadow: const [
-                    BoxShadow(color: Colors.black87, blurRadius: 20),
+                    BoxShadow(
+                      color: Colors.black87,
+                      blurRadius: 28,
+                      offset: Offset(0, 10),
+                    ),
                   ],
                 ),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Çetele Üst Başlığı (El yazısı / defter tarzı)
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          '📊 101 PUAN ÇETELESİ',
-                          style: TextStyle(
-                            color: Color(0xFFFDE047),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 16,
+                        const Icon(
+                          Icons.edit_note_rounded,
+                          color: Color(0xFF78350F),
+                          size: 26,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                '📝 OYUN ÇETELESİ (101 CEZA TABLOSU)',
+                                style: TextStyle(
+                                  color: Color(0xFF451A03),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 14,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              Text(
+                                'El #${_ctrl.roundNumber} • ${_ctrl.isAssisted ? "Yardımlı Mod" : "Yardımsız Mod"}',
+                                style: const TextStyle(
+                                  color: Color(0xFF92400E),
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                         IconButton(
                           onPressed: () => setState(() => _showScoreboardModal = false),
-                          icon: const Icon(Icons.close, color: Colors.white70),
+                          icon: const Icon(Icons.close, color: Color(0xFF78350F)),
                         ),
                       ],
                     ),
-                    const Divider(color: Color(0xFFD4AF37)),
                     const SizedBox(height: 8),
-                    for (final p in seats)
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 6),
-                        child: Row(
-                          children: [
-                            Text(
-                              VipAvatar.fromKey(p.avatar).emoji,
-                              style: const TextStyle(fontSize: 18),
+
+                    // ÇETELE TABLOSU: Sütun Başlıkları (El No + Her Oyuncunun Adı)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEFE9D7),
+                        border: Border(
+                          top: BorderSide(color: Color(0xFF78350F), width: 1.5),
+                          bottom: BorderSide(color: Color(0xFF78350F), width: 1.5),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 52,
+                            child: Text(
+                              'EL',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF451A03),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 12,
+                              ),
                             ),
-                            const SizedBox(width: 8),
-                            Expanded(
+                          ),
+                          const SizedBox(
+                            height: 20,
+                            child: VerticalDivider(color: Color(0xFF78350F), width: 8),
+                          ),
+                          ...seats.map(
+                            (p) => Expanded(
                               child: Text(
                                 p.seatIndex == 0 ? '${p.username} (Sen)' : p.username,
+                                textAlign: TextAlign.center,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
                                   color: p.seatIndex == 0
-                                      ? const Color(0xFFFDE047)
-                                      : Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 13,
+                                      ? const Color(0xFF1E3A8A)
+                                      : const Color(0xFF451A03),
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 11.5,
                                 ),
                               ),
                             ),
-                            Text(
-                              p.isEliminated
-                                  ? 'YANDI (${p.totalScore})'
-                                  : '${p.totalScore} / 101',
-                              style: TextStyle(
-                                color: p.isEliminated
-                                    ? const Color(0xFFEF4444)
-                                    : const Color(0xFFFDE047),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 13,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // ÇETELE GÖVDESİ: Her Elin Satırı (1. El, 2. El... Açtı / Ceza Puanı)
+                    Flexible(
+                      child: history.isEmpty
+                          ? const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(24.0),
+                                child: Text(
+                                  'Henüz el tamamlanmadı. İlk el bittiğinde cezalar buraya yazılacaktır.',
+                                  textAlign: TextAlign.center,
+                                  style: TextStyle(
+                                    color: Color(0xFF92400E),
+                                    fontStyle: FontStyle.italic,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              itemCount: history.length,
+                              separatorBuilder: (_, _) => const Divider(
+                                color: Color(0xFFE2D9C2),
+                                height: 1,
+                                thickness: 1,
+                              ),
+                              itemBuilder: (context, idx) {
+                                final row = history[idx];
+                                final rNum = row.roundNumber;
+                                final finisherId = row.finisherUserId;
+                                final scores = row.scoresByUser;
+
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    vertical: 6,
+                                    horizontal: 6,
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      SizedBox(
+                                        width: 52,
+                                        child: Text(
+                                          '$rNum. El',
+                                          textAlign: TextAlign.center,
+                                          style: const TextStyle(
+                                            color: Color(0xFF78350F),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 11.5,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(
+                                        height: 18,
+                                        child: VerticalDivider(
+                                          color: Color(0xFFD6C8AC),
+                                          width: 8,
+                                        ),
+                                      ),
+                                      ...seats.map((p) {
+                                        final sc = scores[p.userId];
+                                        final isFinisher = finisherId == p.userId;
+                                        String text = '-';
+                                        Color col = const Color(0xFF1F2937);
+                                        FontWeight fw = FontWeight.w600;
+
+                                        if (isFinisher) {
+                                          text = 'AÇTI';
+                                          col = const Color(0xFF047857);
+                                          fw = FontWeight.w900;
+                                        } else if (sc != null) {
+                                          text = '+$sc';
+                                          col = const Color(0xFFB91C1C);
+                                          fw = FontWeight.bold;
+                                        }
+
+                                        return Expanded(
+                                          child: Text(
+                                            text,
+                                            textAlign: TextAlign.center,
+                                            style: TextStyle(
+                                              color: col,
+                                              fontWeight: fw,
+                                              fontSize: 12,
+                                            ),
+                                          ),
+                                        );
+                                      }),
+                                    ],
+                                  ),
+                                );
+                              },
                             ),
-                          ],
+                    ),
+
+                    // ÇETELE EN ALT TOPLAM VE DURUM SATIRI
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 6),
+                      decoration: const BoxDecoration(
+                        color: Color(0xFFEFE9D7),
+                        border: Border(
+                          top: BorderSide(color: Color(0xFF78350F), width: 2),
+                          bottom: BorderSide(color: Color(0xFF78350F), width: 1.5),
                         ),
                       ),
-                    const SizedBox(height: 12),
+                      child: Row(
+                        children: [
+                          const SizedBox(
+                            width: 52,
+                            child: Text(
+                              'TOPLAM',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFF451A03),
+                                fontWeight: FontWeight.w900,
+                                fontSize: 11,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(
+                            height: 28,
+                            child: VerticalDivider(color: Color(0xFF78350F), width: 8),
+                          ),
+                          ...seats.map((p) {
+                            final tot = p.totalScore;
+                            final isBurned = p.isEliminated || tot >= 101;
+
+                            return Expanded(
+                              child: Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '$tot',
+                                    textAlign: TextAlign.center,
+                                    style: TextStyle(
+                                      color: isBurned
+                                          ? const Color(0xFFB91C1C)
+                                          : const Color(0xFF1E3A8A),
+                                      fontWeight: FontWeight.w900,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                  if (isBurned)
+                                    Container(
+                                      margin: const EdgeInsets.only(top: 2),
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 4,
+                                        vertical: 1,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFFFEE2E2),
+                                        borderRadius: BorderRadius.circular(4),
+                                        border: Border.all(
+                                          color: const Color(0xFFEF4444),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: const Text(
+                                        'YANDI',
+                                        style: TextStyle(
+                                          color: Color(0xFFDC2626),
+                                          fontSize: 8.5,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
                   ],
                 ),
               ),

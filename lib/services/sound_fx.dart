@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
@@ -14,6 +15,12 @@ class SoundFx {
     if (_isInitialized) return;
     try {
       await _player.setReleaseMode(ReleaseMode.stop);
+      await _player.setPlayerMode(PlayerMode.lowLatency);
+      // Ses önbelleğini hemen hazırla
+      _wavCache['card_slide'] = _generateCardSlideWav();
+      _wavCache['card_discard'] = _generateCardDiscardWav();
+      _wavCache['card_tap'] = _generateCardTapWav();
+      _wavCache['celebration'] = _generateCelebrationWav();
       _isInitialized = true;
     } catch (_) {}
   }
@@ -54,14 +61,13 @@ class SoundFx {
     }
   }
 
-  static Future<void> _playAcousticSfx(
+  static void _playAcousticSfx(
     String key,
     Uint8List Function() generator,
-  ) async {
+  ) {
     try {
       final wav = _wavCache.putIfAbsent(key, generator);
-      await _player.stop();
-      await _player.play(BytesSource(wav));
+      unawaited(_player.play(BytesSource(wav), mode: PlayerMode.lowLatency));
     } catch (_) {}
   }
 
