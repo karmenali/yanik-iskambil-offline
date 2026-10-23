@@ -139,6 +139,12 @@ class OfflineTableController extends ChangeNotifier {
     _botTimer?.cancel();
     final settings = SettingsService.instance;
 
+    winnerMessage = null;
+    lastShowdown = null;
+    lastFinisherSeat = null;
+    lastFalseDeclarerSeat = null;
+    selectedCardId = null;
+
     roundHistory.clear();
     players.clear();
     // 0: İnsan Oyuncu (Sol-Alt)
@@ -189,16 +195,23 @@ class OfflineTableController extends ChangeNotifier {
     lastFalseDeclarerSeat = null;
     selectedCardId = null;
 
-    final playerIds = players.map((p) => p.userId).toList();
-    final dealt = GameEngine.dealRoundHands(playerIds);
+    // Yalnızca masada elenmemiş (aktif) oyunculara kart dağıt
+    final activePlayerIds =
+        players.where((p) => !p.isEliminated).map((p) => p.userId).toList();
+    final dealt = GameEngine.dealRoundHands(activePlayerIds);
 
     drawPile = dealt.drawPile;
     indicatorCard = dealt.indicatorCard;
     wildRank = dealt.wildRank;
 
     for (int i = 0; i < players.length; i++) {
-      players[i].hand = dealt.hands[players[i].userId] ?? [];
-      players[i].openedMelds.clear();
+      if (players[i].isEliminated) {
+        players[i].hand = [];
+        players[i].openedMelds.clear();
+      } else {
+        players[i].hand = dealt.hands[players[i].userId] ?? [];
+        players[i].openedMelds.clear();
+      }
     }
 
     _distributeHumanCardsToRows(players[0].hand);
@@ -526,8 +539,12 @@ class OfflineTableController extends ChangeNotifier {
           ? p.openedMelds
           : eval.melds;
 
+      final wasAlreadyEliminated = p.isEliminated;
       int roundPenalty = 0;
-      if (falseDeclarerSeat != null) {
+      if (wasAlreadyEliminated) {
+        // Önceden elenmiş oyuncu yeni ceza almaz
+        roundPenalty = 0;
+      } else if (falseDeclarerSeat != null) {
         // Hatalı el açma: SADECE hatalı açan 101 ceza alır, diğer oyuncular 0 ceza alır
         roundPenalty = isFalseDeclarer ? 101 : 0;
       } else {
@@ -535,7 +552,9 @@ class OfflineTableController extends ChangeNotifier {
       }
 
       final prevScore = p.totalScore;
-      p.totalScore += roundPenalty;
+      if (!wasAlreadyEliminated) {
+        p.totalScore += roundPenalty;
+      }
       final burned = p.totalScore >= 101;
       if (burned) p.isEliminated = true;
 
@@ -547,11 +566,11 @@ class OfflineTableController extends ChangeNotifier {
         isFinisher: isFinisher,
         isFalseDeclarer: isFalseDeclarer,
         melds: displayMelds,
-        unmelded: isFinisher ? [] : eval.unmelded,
+        unmelded: isFinisher || wasAlreadyEliminated ? [] : eval.unmelded,
         roundPenalty: roundPenalty,
         previousScore: prevScore,
         newTotalScore: p.totalScore,
-        burnedThisRound: burned,
+        burnedThisRound: !wasAlreadyEliminated && burned,
       ));
     }
 
