@@ -48,24 +48,28 @@ class RulesDialog extends StatelessWidget {
                 shrinkWrap: true,
                 children: [
                   _buildRuleCard(
-                    '🃏 106 Kağıt & 3 Sıralı Istaka Düzeni',
+                    '🃏 106 Kağıt & Kart Çekme',
                     'Oyun 2 tam deste (104 kağıt) + 2 Fiziksel Joker olmak üzere toplam 106 kağıtla oynanır. '
-                        'Her oyuncuya 10\'ar kağıt dağıtılır. Kağıtlarınızı 3 yatay sırada serbestçe dizebilirsiniz.',
+                        'Her oyuncuya 10\'ar kağıt dağıtılır. Kart çekme yalnızca ortadaki kapalı desteden yapılır; yerden kart alınamaz.',
                   ),
                   _buildRuleCard(
                     '👑 Gösterge Jokeri (Wild Card)',
                     'Dağıtım sonunda açılan Gösterge kağıdı ile aynı sayıdaki tüm kağıtlar ve 2 fiziksel Joker, o el boyunca JOKER yerine geçer. '
-                        'Elinizde per yapmadan kalan Joker 25 ceza puanı yazar.',
+                        '3 adet Joker tek başına 1 per oluşturabilir. Elinizde per yapmadan kalan Joker 25 ceza puanı yazar.',
                   ),
                   _buildRuleCard(
                     '✨ Yardımlı Mod vs 🔥 Yardımsız Mod',
                     '• Yardımlı Mod: Geçerli perleriniz (✓ PER) ve elinizdeki ceza puanı otomatik olarak canlı gösterilir.\n'
-                        '• Yardımsız Mod: Hiçbir per veya ceza ipucu verilmez! DİKKAT: Yardımsız modda hatalı el açan oyuncu DİREKT 101 CEZA ile yanar!',
+                        '• Yardımsız Mod: Hiçbir per veya ceza ipucu verilmez! DİKKAT: Yardımsız modda hatalı el açan oyuncu DİREKT 101 CEZA ile yanar; diğer oyuncular 0 ceza alır!',
                   ),
                   _buildRuleCard(
-                    '🔍 Şeffaf El Açma & Ceza İşleme',
-                    'Bir oyuncu 10 kağıdını yere açıp 11. kağıdını attığında tur biter. '
-                        'Eli açan oyuncu 0 ceza puanı alırken, diğer oyuncuların elinde per olmamış kağıtların sayı değerleri ceza olarak işlenir.',
+                    '🔍 Ceza Puanı Değerleri',
+                    'Per yapılmayan boşta kalan kağıtlar:\n'
+                        '• As (A) = 10 puan\n'
+                        '• Papaz (K), Kız (Q), Vale (J) = 10 puan\n'
+                        '• 2 .. 10 = Kendi sayısal değeri\n'
+                        '• Joker = 25 puan\n'
+                        'Eli meşru açıp bitiren oyuncu 0 ceza puanı alır.',
                   ),
                   _buildRuleCard(
                     '🔥 101 Barajı',

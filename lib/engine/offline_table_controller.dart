@@ -203,8 +203,8 @@ class OfflineTableController extends ChangeNotifier {
 
     _distributeHumanCardsToRows(players[0].hand);
 
-    // Dağıtandan sonraki oyuncudan başla
-    currentTurnSeat = (dealerSeat + 1) % 4;
+    // Dağıtandan sonraki aktif oyuncudan başla
+    currentTurnSeat = getNextActiveSeatIndex(dealerSeat);
     status = 'playing';
     SoundFx.playCardSlide();
     notifyListeners();
@@ -246,22 +246,16 @@ class OfflineTableController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// İnsan oyuncu kart çeker
-  void humanDrawCard({required bool fromDiscard}) {
+  /// İnsan oyuncu kart çeker (Yalnızca kapalı desteden)
+  void humanDrawCard({bool fromDiscard = false}) {
     if (!isHumanTurn || hasDrawnThisTurn) return;
 
-    CardModel? drawnCard;
-    if (fromDiscard) {
-      if (discardPile.isEmpty) return;
-      drawnCard = discardPile.removeLast();
-    } else {
-      if (drawPile.isEmpty) {
-        // Deste bittiyse turu bitir
-        endRound(null);
-        return;
-      }
-      drawnCard = drawPile.removeAt(0);
+    if (drawPile.isEmpty) {
+      // Deste bittiyse turu bitir
+      endRound(null);
+      return;
     }
+    final drawnCard = drawPile.removeAt(0);
 
     players[0].hand.add(drawnCard);
     // 3. sıranın sonuna ekle
@@ -287,6 +281,12 @@ class OfflineTableController extends ChangeNotifier {
     hasDrawnThisTurn = false;
     SoundFx.playCardDiscard();
 
+    // Deste tükendiyse ve kimse bitmediyse tur sona erer
+    if (drawPile.isEmpty) {
+      endRound(null);
+      return;
+    }
+
     _advanceTurn();
   }
 
@@ -301,12 +301,14 @@ class OfflineTableController extends ChangeNotifier {
     if (!isHumanTurn || !hasDrawnThisTurn || players[0].hand.length != 11) return;
 
     final isAssisted = SettingsService.instance.isAssisted;
+    final rowIds = humanRows.map((r) => r.map((c) => c.id).toList()).toList();
 
     if (isAssisted) {
-      // Yardımlı Mod: Otomatik kontrol
+      // Yardımlı Mod: Otomatik kontrol (önce ıstaka sıralarını, sonra genel kombinasyonu dener)
       final winCheck = GameEngine.findWinningDiscard(
         players[0].hand,
         wildRank,
+        handRows: rowIds,
         preferredDiscardCardId: selectedCardId,
       );
 
@@ -422,10 +424,22 @@ class OfflineTableController extends ChangeNotifier {
     }
   }
 
+  /// Aktif (elenmemiş) bir sonraki oyuncunun koltuk numarasını bulur
+  int getNextActiveSeatIndex(int fromSeat) {
+    if (players.isEmpty) return 0;
+    for (int step = 1; step <= 4; step++) {
+      final candidate = (fromSeat + step) % 4;
+      if (candidate < players.length && !players[candidate].isEliminated) {
+        return candidate;
+      }
+    }
+    return fromSeat;
+  }
+
   void _advanceTurn() {
     if (status != 'playing') return;
 
-    currentTurnSeat = (currentTurnSeat + 1) % 4;
+    currentTurnSeat = getNextActiveSeatIndex(currentTurnSeat);
     hasDrawnThisTurn = false;
     notifyListeners();
 
@@ -449,26 +463,12 @@ class OfflineTableController extends ChangeNotifier {
     _botTimer = Timer(const Duration(milliseconds: 1200), () {
       if (status != 'playing' || currentTurnSeat != bot.seatIndex) return;
 
-      // 1. Kart çekme kararı
-      CardModel? drawnCard;
-
-      if (discardPile.isNotEmpty) {
-        final topDiscard = discardPile.last;
-        // Atılan kart botun elini bitiriyor mu?
-        final testHand = [...bot.hand, topDiscard];
-        final winTest = GameEngine.findWinningDiscard(testHand, wildRank);
-        if (winTest.canWin) {
-          drawnCard = discardPile.removeLast();
-        }
+      // 1. Kart çekme kararı (Kural: Yalnızca kapalı desteden çekilir)
+      if (drawPile.isEmpty) {
+        endRound(null);
+        return;
       }
-
-      if (drawnCard == null) {
-        if (drawPile.isEmpty) {
-          endRound(null);
-          return;
-        }
-        drawnCard = drawPile.removeAt(0);
-      }
+      final drawnCard = drawPile.removeAt(0);
 
       bot.hand.add(drawnCard);
       hasDrawnThisTurn = true;
@@ -496,6 +496,12 @@ class OfflineTableController extends ChangeNotifier {
         discardPile.add(toDiscard);
         SoundFx.playCardDiscard();
 
+        // Deste tükendiyse ve kimse bitmediyse tur sona erer
+        if (drawPile.isEmpty) {
+          endRound(null);
+          return;
+        }
+
         _advanceTurn();
       });
     });
@@ -521,12 +527,11 @@ class OfflineTableController extends ChangeNotifier {
           : eval.melds;
 
       int roundPenalty = 0;
-      if (isFinisher) {
-        roundPenalty = 0;
-      } else if (isFalseDeclarer) {
-        roundPenalty = 101; // Hatalı el açan direkt yanar
+      if (falseDeclarerSeat != null) {
+        // Hatalı el açma: SADECE hatalı açan 101 ceza alır, diğer oyuncular 0 ceza alır
+        roundPenalty = isFalseDeclarer ? 101 : 0;
       } else {
-        roundPenalty = eval.penalty;
+        roundPenalty = isFinisher ? 0 : eval.penalty;
       }
 
       final prevScore = p.totalScore;
@@ -575,11 +580,21 @@ class OfflineTableController extends ChangeNotifier {
     final alivePlayers = players.where((p) => !p.isEliminated).toList();
     if (players[0].isEliminated || alivePlayers.length <= 1) {
       // Şampiyon belirlendi
-      alivePlayers.sort((a, b) => a.totalScore.compareTo(b.totalScore));
-      final champion = alivePlayers.isNotEmpty ? alivePlayers.first : players[0];
-      winnerMessage = champion.seatIndex == 0
-          ? 'Tebrikler! Masayı Şampiyon Olarak Tamamladınız! 🏆'
-          : '${champion.username} Şampiyon Oldu!';
+      if (alivePlayers.isEmpty) {
+        // Herkes aynı turda 101'i geçtiyse en düşük toplam puana sahip olan kazanır
+        final sortedByScore = List<OfflinePlayer>.from(players)
+          ..sort((a, b) => a.totalScore.compareTo(b.totalScore));
+        final champion = sortedByScore.first;
+        winnerMessage = champion.seatIndex == 0
+            ? 'Tebrikler! Masayı Şampiyon Olarak Tamamladınız! 🏆'
+            : '${champion.username} Şampiyon Oldu!';
+      } else {
+        alivePlayers.sort((a, b) => a.totalScore.compareTo(b.totalScore));
+        final champion = alivePlayers.first;
+        winnerMessage = champion.seatIndex == 0
+            ? 'Tebrikler! Masayı Şampiyon Olarak Tamamladınız! 🏆'
+            : '${champion.username} Şampiyon Oldu!';
+      }
     } else {
       winnerMessage = null;
     }
@@ -594,7 +609,7 @@ class OfflineTableController extends ChangeNotifier {
       notifyListeners();
     } else {
       roundNumber++;
-      dealerSeat = (dealerSeat + 1) % 4;
+      dealerSeat = getNextActiveSeatIndex(dealerSeat);
       startRound();
     }
   }

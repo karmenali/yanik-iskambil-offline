@@ -67,7 +67,7 @@ class SoundFx {
   ) {
     try {
       final wav = _wavCache.putIfAbsent(key, generator);
-      unawaited(_player.play(BytesSource(wav), mode: PlayerMode.lowLatency));
+      _player.play(BytesSource(wav), mode: PlayerMode.lowLatency).catchError((_) {});
     } catch (_) {}
   }
 

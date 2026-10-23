@@ -63,7 +63,7 @@ class GameEngine {
     if (isWildCard(card, wildRank)) {
       return 25;
     }
-    if (card.rank == 1) return 11; // As = 11 puan
+    if (card.rank == 1) return 10; // As = 10 puan (Kullanıcı kuralı: 11 değil 10)
     if (card.rank >= 11 && card.rank <= 13) return 10; // J, Q, K = 10 puan
     return card.rank; // 2..10 kendi değeri
   }
@@ -409,6 +409,59 @@ class GameEngine {
   }) {
     if (cards11.length != 11) return (canWin: false, discardCard: null, evaluation: null);
 
+    // 1. Önce oyuncunun kendi ıstaka satırlarında geçerli bitiş var mı kontrol et
+    if (handRows != null && handRows.length == 3) {
+      final cardMap = {for (final c in cards11) c.id: c};
+      final candidateIds = <String>[];
+      if (preferredDiscardCardId != null && cardMap.containsKey(preferredDiscardCardId)) {
+        candidateIds.add(preferredDiscardCardId);
+      }
+      for (final c in cards11) {
+        if (!candidateIds.contains(c.id)) {
+          candidateIds.add(c.id);
+        }
+      }
+
+      for (final candId in candidateIds) {
+        final candDiscard = cardMap[candId];
+        if (candDiscard == null) continue;
+
+        bool allRowsValid = true;
+        final collectedMelds = <List<CardModel>>[];
+        int totalMelded = 0;
+
+        for (int r = 0; r < 3; r++) {
+          final rowCardIds = handRows[r].where((id) => id != candId).toList();
+          final rowCards = rowCardIds.map((id) => cardMap[id]).whereType<CardModel>().toList();
+          if (rowCards.isEmpty) continue;
+          totalMelded += rowCards.length;
+
+          final decomp = decomposeRowIntoMelds(rowCards, wildRank);
+          if (!decomp.valid) {
+            allRowsValid = false;
+            break;
+          }
+          collectedMelds.addAll(decomp.melds);
+        }
+
+        if (allRowsValid && totalMelded == 10) {
+          final ordered = collectedMelds.expand((m) => m).toList();
+          return (
+            canWin: true,
+            discardCard: candDiscard,
+            evaluation: HandEvaluation(
+              canFinish: true,
+              melds: collectedMelds,
+              unmelded: [],
+              penalty: 0,
+              orderedCards: ordered,
+            ),
+          );
+        }
+      }
+    }
+
+    // 2. Genel optimum kombinasyon taraması
     CardModel? bestDiscard;
     HandEvaluation? bestEval;
     int bestDiscardScore = -1;
