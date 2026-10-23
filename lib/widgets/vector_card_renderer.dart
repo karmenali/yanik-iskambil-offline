@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Zynga Poker & Batak HD seviyesinde GPU hızlandırmalı Vektörel İskambil Çizim Motoru
+/// Zynga Poker & Batak HD seviyesinde GPU hızlandırmalı Profesyonel Vektörel İskambil Çizim Motoru
 class VectorCardPainter extends CustomPainter {
   final int rank; // 1: A, 2..10, 11: J, 12: Q, 13: K, 0: Joker
   final String suit; // 'S': Maça, 'H': Kupa, 'D': Karo, 'C': Sinek, 'J': Joker
@@ -27,40 +27,59 @@ class VectorCardPainter extends CustomPainter {
     // 1. KART GÖVDESİ & CASINO FİLDİŞİ DOKUSU
     final rrect = RRect.fromRectAndRadius(
       Rect.fromLTWH(0, 0, w, h),
-      Radius.circular((w * 0.12).clamp(5.0, 10.0)),
+      Radius.circular((w * 0.12).clamp(4.5, 9.0)),
     );
 
-    // Hafif zengin gölge
+    // Zengin derinlik gölgesi
     final shadowPaint = Paint()
       ..color = Colors.black.withValues(alpha: isSelected ? 0.35 : 0.18)
       ..maskFilter = MaskFilter.blur(BlurStyle.normal, isSelected ? 6 : 2.5);
     canvas.drawRRect(rrect.shift(Offset(0, isSelected ? 4 : 1.5)), shadowPaint);
 
-    // Kart Kağıdı Dolgusu (Casino ivory fildişi)
+    // Kart Kağıdı Dolgusu (Casino ivory fildişi zemin)
     final cardBgPaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
-        colors: [Color(0xFFFFFFFF), Color(0xFFF9FAFB), Color(0xFFF3F4F6)],
+        colors: [Color(0xFFFFFFFF), Color(0xFFFBFBFA), Color(0xFFF4F4F2)],
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRRect(rrect, cardBgPaint);
+
+    // Sahte Joker (Gösterge jokeri) yardımlı moddaysa hafif altın parıltı çerçevesi
+    final bool isIndicatorWild = showAsWild && !isPhysicalJoker;
+    if (isIndicatorWild) {
+      final wildGlowPaint = Paint()
+        ..color = const Color(0xFFF59E0B).withValues(alpha: 0.15)
+        ..style = PaintingStyle.fill;
+      canvas.drawRRect(rrect, wildGlowPaint);
+    }
 
     // Kart Kenar Çizgisi (Border)
     final borderPaint = Paint()
       ..style = PaintingStyle.stroke
-      ..strokeWidth = isSelected ? 2.0 : 1.0
+      ..strokeWidth = (isSelected || isIndicatorWild) ? 1.8 : 1.0
       ..color = isSelected
           ? const Color(0xFFF59E0B)
-          : (showAsWild
+          : (isIndicatorWild
               ? const Color(0xFFF59E0B)
               : const Color(0xFFD1D5DB).withValues(alpha: 0.85));
     canvas.drawRRect(rrect, borderPaint);
+
+    // İç ince asil çerçeve çizgisi
+    final innerRRect = rrect.deflate((w * 0.04).clamp(1.5, 2.8));
+    final innerBorderPaint = Paint()
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.5
+      ..color = isIndicatorWild
+          ? const Color(0xFFD4AF37).withValues(alpha: 0.5)
+          : const Color(0xFF94A3B8).withValues(alpha: 0.25);
+    canvas.drawRRect(innerRRect, innerBorderPaint);
 
     // 2. RENKLER
     final bool isRed = suit == 'H' || suit == 'D';
     final Color suitColor = isPhysicalJoker
         ? const Color(0xFF7C3AED)
-        : (isRed ? const Color(0xFFDC2626) : const Color(0xFF1E293B));
+        : (isRed ? const Color(0xFFC41E3A) : const Color(0xFF18181B));
 
     if (isPhysicalJoker) {
       _paintJoker(canvas, w, h);
@@ -69,7 +88,7 @@ class VectorCardPainter extends CustomPainter {
 
     // 3. KÖŞE İNDEKSLERİ (SOL ÜST & SAĞ ALT - TERS SİMETRİK)
     _paintCorner(canvas, w, h, suitColor, isTop: true);
-    if (h >= 55) {
+    if (h >= 50) {
       _paintCorner(canvas, w, h, suitColor, isTop: false);
     }
 
@@ -84,19 +103,19 @@ class VectorCardPainter extends CustomPainter {
       canvas.rotate(math.pi);
     }
 
-    final double padX = (w * 0.08).clamp(3.0, 6.0);
-    final double padY = (h * 0.05).clamp(2.5, 5.0);
+    final double padX = (w * 0.075).clamp(2.8, 5.5);
+    final double padY = (h * 0.045).clamp(2.2, 4.5);
 
     // Sayı / Harf
     final label = _getRankLabel();
-    final double fontSize = (w * 0.22).clamp(9.5, 15.0);
+    final double fontSize = (w * 0.23).clamp(9.5, 15.0);
     final textSpan = TextSpan(
       text: label,
       style: TextStyle(
         color: color,
         fontSize: fontSize,
         fontWeight: FontWeight.w900,
-        letterSpacing: rank == 10 ? -1.0 : -0.3,
+        letterSpacing: rank == 10 ? -1.2 : -0.3,
         height: 1.0,
       ),
     );
@@ -105,8 +124,8 @@ class VectorCardPainter extends CustomPainter {
     tp.paint(canvas, Offset(padX, padY));
 
     // Köşedeki küçük sembol
-    final double suitY = padY + tp.height + 1.2;
-    final double cornerSuitSize = (w * 0.15).clamp(6.5, 10.0);
+    final double suitY = padY + tp.height + 1.0;
+    final double cornerSuitSize = (w * 0.15).clamp(6.0, 9.5);
     _drawSuitVector(
       canvas,
       suit,
@@ -123,8 +142,12 @@ class VectorCardPainter extends CustomPainter {
 
     // AS (A) - Lüks Casino Amblemi
     if (rank == 1) {
-      final double aceSize = (w * 0.42).clamp(20.0, 38.0);
-      _drawSuitVector(canvas, suit, center, aceSize, color);
+      if (suit == 'S') {
+        _drawOrnateAceOfSpades(canvas, center, w, h, color);
+      } else {
+        final double aceSize = (w * 0.44).clamp(18.0, 36.0);
+        _drawSuitVector(canvas, suit, center, aceSize, color);
+      }
       return;
     }
 
@@ -138,14 +161,34 @@ class VectorCardPainter extends CustomPainter {
     _drawPipMatrix(canvas, w, h, color);
   }
 
+  /// Maça Ası için klasik Bicycle tarzı süslemeli gravür amblemi
+  void _drawOrnateAceOfSpades(Canvas canvas, Offset center, double w, double h, Color color) {
+    final double aceSize = (w * 0.46).clamp(20.0, 38.0);
+    // Ana büyük maça
+    _drawSuitVector(canvas, 'S', center, aceSize, color);
+
+    // İç kontur ve filigran çizgileri (lüks detay)
+    final double innerSize = aceSize * 0.55;
+    _drawSuitVector(canvas, 'S', center.translate(0, -aceSize * 0.04), innerSize, Colors.white.withValues(alpha: 0.85));
+    _drawSuitVector(canvas, 'S', center.translate(0, -aceSize * 0.04), innerSize * 0.70, color);
+
+    // Altında ve yanlarında minik altın rosetler
+    final double s = aceSize / 24.0;
+    final accentPaint = Paint()..color = const Color(0xFFD4AF37);
+    canvas.drawCircle(Offset(center.dx - 9 * s, center.dy + 8 * s), 1.2 * s, accentPaint);
+    canvas.drawCircle(Offset(center.dx + 9 * s, center.dy + 8 * s), 1.2 * s, accentPaint);
+  }
+
+  /// Resimli Kartlar (J, Q, K) - İki Başlı (180° Simetrik) Otantik Casino Kraliyet Çizimi
   void _drawRoyalCourtFigure(Canvas canvas, double w, double h, Offset center, Color color) {
-    final double mw = (w * 0.54).clamp(24.0, 48.0);
-    final double mh = (h * 0.62).clamp(34.0, 72.0);
+    // Portre çerçeve sınırları (köşe indekslerini asla örtmez!)
+    final double mw = (w * 0.54).clamp(21.0, 48.0);
+    final double mh = (h * 0.62).clamp(32.0, 72.0);
 
     final rect = Rect.fromCenter(center: center, width: mw, height: mh);
-    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(4.0));
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(3.5));
 
-    // 1. Minyatür Portre Çerçevesi ve Arka Planı
+    // 1. Minyatür Portre Çerçevesi ve Zemin Dokusu
     final bgPaint = Paint()..color = const Color(0xFFFAF7EE);
     canvas.drawRRect(rrect, bgPaint);
 
@@ -155,39 +198,40 @@ class VectorCardPainter extends CustomPainter {
       ..strokeWidth = 1.0;
     canvas.drawRRect(rrect, borderPaint);
 
-    // İç ince süs çizgisi
+    // İç süs çizgisi
     final innerRRect = RRect.fromRectAndRadius(
-      rect.deflate(1.8),
-      const Radius.circular(2.5),
+      rect.deflate(1.6),
+      const Radius.circular(2.0),
     );
     final innerBorderPaint = Paint()
-      ..color = color.withValues(alpha: 0.18)
+      ..color = color.withValues(alpha: 0.22)
       ..style = PaintingStyle.stroke
       ..strokeWidth = 0.6;
     canvas.drawRRect(innerRRect, innerBorderPaint);
 
-    // Ortadan geçen yatay zarif bölücü kuşak (Sash)
+    // Ortadan geçen yatay zarif bölücü kraliyet kuşağı (Sash)
     final double halfH = mh / 2;
     final dividerPaint = Paint()
-      ..color = const Color(0xFFD4AF37).withValues(alpha: 0.85)
+      ..color = const Color(0xFFD4AF37)
       ..style = PaintingStyle.stroke
-      ..strokeWidth = 0.8;
+      ..strokeWidth = 0.9;
     canvas.drawLine(
       Offset(rect.left + 2, center.dy),
       Offset(rect.right - 2, center.dy),
       dividerPaint,
     );
 
-    // Kuşak ortasındaki küçük kraliyet baklava motifi
+    // Kuşak ortasındaki altın kraliyet arması
     final diamondPath = Path()
-      ..moveTo(center.dx, center.dy - 3)
-      ..lineTo(center.dx + 4, center.dy)
-      ..lineTo(center.dx, center.dy + 3)
-      ..lineTo(center.dx - 4, center.dy)
+      ..moveTo(center.dx, center.dy - 2.8)
+      ..lineTo(center.dx + 4.2, center.dy)
+      ..lineTo(center.dx, center.dy + 2.8)
+      ..lineTo(center.dx - 4.2, center.dy)
       ..close();
     canvas.drawPath(diamondPath, Paint()..color = const Color(0xFFD4AF37));
+    canvas.drawCircle(center, 1.2, Paint()..color = (color == const Color(0xFFC41E3A) ? const Color(0xFFC41E3A) : const Color(0xFF1E3A8A)));
 
-    // 2. ÇİFT BAŞLI PORTRE ÇİZİMİ (ÜST DÜZ & ALT 180° TERS)
+    // 2. ÇİFT BAŞLI PORTRE ÇİZİMİ (ÜST DÜZ & ALT 180° TERS SİMETRİK)
     _drawHalfCourtFigure(canvas, mw, halfH, center, color, isTop: true);
     _drawHalfCourtFigure(canvas, mw, halfH, center, color, isTop: false);
   }
@@ -206,43 +250,57 @@ class VectorCardPainter extends CustomPainter {
       canvas.rotate(math.pi);
     }
 
-    final double s = (mw / 36.0).clamp(0.65, 1.35);
+    final double s = (mw / 36.0).clamp(0.60, 1.30);
 
-    // 1. OMUZLAR & KRALİYET BORNOZU / YELKASI (Robe & Mantle)
+    // 1. OMUZLAR & KRALİYET BORNOZU / ELBİSESİ (Robe & Mantle)
     final robePath = Path();
     robePath.moveTo(-mw * 0.44, 0);
-    robePath.lineTo(-mw * 0.40, -halfH * 0.40);
+    robePath.lineTo(-mw * 0.40, -halfH * 0.42);
     robePath.cubicTo(
-      -mw * 0.28, -halfH * 0.60,
+      -mw * 0.28, -halfH * 0.62,
       -mw * 0.12, -halfH * 0.58,
-      -mw * 0.08, -halfH * 0.52,
+      -mw * 0.08, -halfH * 0.50,
     );
     robePath.lineTo(0, -halfH * 0.32);
-    robePath.lineTo(mw * 0.08, -halfH * 0.52);
+    robePath.lineTo(mw * 0.08, -halfH * 0.50);
     robePath.cubicTo(
       mw * 0.12, -halfH * 0.58,
-      mw * 0.28, -halfH * 0.60,
-      mw * 0.40, -halfH * 0.40,
+      mw * 0.28, -halfH * 0.62,
+      mw * 0.40, -halfH * 0.42,
     );
     robePath.lineTo(mw * 0.44, 0);
     robePath.close();
 
-    final robeColor = (suit == 'H' || suit == 'D')
-        ? const Color(0xFFDC2626).withValues(alpha: 0.12)
-        : const Color(0xFF1E293B).withValues(alpha: 0.12);
-    canvas.drawPath(robePath, Paint()..color = robeColor);
+    // Elbise dolgu rengi: Kraliyet Laciverti ve Bordo uyumu
+    final Color primaryRobeColor = (rank == 12)
+        ? const Color(0xFF831843) // Queen: Zengin Fuşya/Bordo
+        : (rank == 13 ? const Color(0xFF1E3A8A) : const Color(0xFF0F766E)); // King: Lacivert, Jack: Zümrüt Mavisi
+    canvas.drawPath(robePath, Paint()..color = primaryRobeColor.withValues(alpha: 0.18));
     canvas.drawPath(
       robePath,
       Paint()
-        ..color = const Color(0xFFD4AF37).withValues(alpha: 0.70)
+        ..color = const Color(0xFFD4AF37)
         ..style = PaintingStyle.stroke
         ..strokeWidth = 0.8,
     );
 
-    // 2. YÜZ & BAŞ (Head & Face)
-    final headY = -halfH * 0.65;
+    // 2. ERMİNE YAKA VE BROKAR ÇİZGİLERİ
+    final collarPath = Path()
+      ..moveTo(-mw * 0.22, -halfH * 0.48)
+      ..lineTo(0, -halfH * 0.28)
+      ..lineTo(mw * 0.22, -halfH * 0.48);
+    canvas.drawPath(
+      collarPath,
+      Paint()
+        ..color = const Color(0xFFD4AF37)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.9,
+    );
+
+    // 3. YÜZ & BAŞ (Head & Face)
+    final headY = -halfH * 0.64;
     final headR = 6.2 * s;
-    final facePaint = Paint()..color = const Color(0xFFFFF7ED);
+    final facePaint = Paint()..color = const Color(0xFFFFF7ED); // Fildişi ten rengi
     canvas.drawCircle(Offset(0, headY), headR, facePaint);
     canvas.drawCircle(
       Offset(0, headY),
@@ -253,34 +311,39 @@ class VectorCardPainter extends CustomPainter {
         ..strokeWidth = 0.7,
     );
 
-    // Saçlar
-    final hairPaint = Paint()..color = color.withValues(alpha: 0.75);
-    canvas.drawCircle(Offset(-headR * 0.85, headY + 1 * s), 2.8 * s, hairPaint);
-    canvas.drawCircle(Offset(headR * 0.85, headY + 1 * s), 2.8 * s, hairPaint);
+    // Bukleler / Saçlar
+    final hairColor = (rank == 12)
+        ? const Color(0xFFB45309) // Kraliçe altın/kızıl bukleler
+        : (rank == 13 ? const Color(0xFF475569) : const Color(0xFF78350F)); // Kral gümüşi/koyu, Vale kahve
+    final hairPaint = Paint()..color = hairColor;
+    canvas.drawCircle(Offset(-headR * 0.85, headY + 1 * s), 2.7 * s, hairPaint);
+    canvas.drawCircle(Offset(headR * 0.85, headY + 1 * s), 2.7 * s, hairPaint);
 
-    // Gözler
-    final eyePaint = Paint()..color = color;
-    canvas.drawCircle(Offset(-2.0 * s, headY - 0.8 * s), 0.75 * s, eyePaint);
-    canvas.drawCircle(Offset(2.0 * s, headY - 0.8 * s), 0.75 * s, eyePaint);
+    // Gözler ve Kaşlar
+    final eyePaint = Paint()..color = const Color(0xFF1E293B);
+    canvas.drawCircle(Offset(-1.9 * s, headY - 0.7 * s), 0.75 * s, eyePaint);
+    canvas.drawCircle(Offset(1.9 * s, headY - 0.7 * s), 0.75 * s, eyePaint);
 
-    // 3. FİGÜRE ÖZGÜ ÇİZİMLER (J / Q / K)
+    // 4. FİGÜRE ÖZGÜ ÖZELLİKLER (J, Q, K)
     if (rank == 13) {
       // PAPAZ / KRAL (KING - K)
+      // Kraliyet Sakalı ve Bıyığı
       final beardPath = Path();
-      beardPath.moveTo(-3.2 * s, headY + 2.2 * s);
-      beardPath.cubicTo(-2.0 * s, headY + 5.8 * s, 2.0 * s, headY + 5.8 * s, 3.2 * s, headY + 2.2 * s);
-      beardPath.lineTo(0, headY + 6.6 * s);
+      beardPath.moveTo(-3.2 * s, headY + 2.0 * s);
+      beardPath.cubicTo(-2.0 * s, headY + 5.6 * s, 2.0 * s, headY + 5.6 * s, 3.2 * s, headY + 2.0 * s);
+      beardPath.lineTo(0, headY + 6.8 * s);
       beardPath.close();
-      canvas.drawPath(beardPath, Paint()..color = color.withValues(alpha: 0.85));
+      canvas.drawPath(beardPath, Paint()..color = hairColor);
 
+      // 5 Tepeli Altın Taç (Crown)
       final crownY = headY - headR;
       final crownPath = Path()
         ..moveTo(-headR * 0.95, crownY + 1.5 * s)
-        ..lineTo(-headR * 0.80, crownY - 5.5 * s)
-        ..lineTo(-headR * 0.35, crownY - 1.5 * s)
-        ..lineTo(0, crownY - 7.5 * s)
-        ..lineTo(headR * 0.35, crownY - 1.5 * s)
-        ..lineTo(headR * 0.80, crownY - 5.5 * s)
+        ..lineTo(-headR * 0.80, crownY - 5.8 * s)
+        ..lineTo(-headR * 0.38, crownY - 1.8 * s)
+        ..lineTo(0, crownY - 7.6 * s)
+        ..lineTo(headR * 0.38, crownY - 1.8 * s)
+        ..lineTo(headR * 0.80, crownY - 5.8 * s)
         ..lineTo(headR * 0.95, crownY + 1.5 * s)
         ..close();
       canvas.drawPath(crownPath, Paint()..color = const Color(0xFFF59E0B));
@@ -291,23 +354,28 @@ class VectorCardPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.8,
       );
-      canvas.drawCircle(Offset(0, crownY - 3.5 * s), 1.2 * s, Paint()..color = const Color(0xFFDC2626));
+      // Taç ortasındaki yakut mücevher
+      canvas.drawCircle(Offset(0, crownY - 3.8 * s), 1.2 * s, Paint()..color = const Color(0xFFDC2626));
+      canvas.drawCircle(Offset(-headR * 0.55, crownY - 2.5 * s), 0.8 * s, Paint()..color = const Color(0xFF2563EB));
+      canvas.drawCircle(Offset(headR * 0.55, crownY - 2.5 * s), 0.8 * s, Paint()..color = const Color(0xFF2563EB));
 
-      // Sağ elde Kraliyet Kılıcı
+      // Sağ elde Kraliyet Kılıcı (Sword)
       final swordX = mw * 0.30;
       final swordPath = Path()
         ..moveTo(swordX, -halfH * 0.85)
         ..lineTo(swordX + 1.2 * s, -halfH * 0.15)
         ..lineTo(swordX - 1.2 * s, -halfH * 0.15)
         ..close();
-      canvas.drawPath(swordPath, Paint()..color = const Color(0xFF94A3B8));
+      canvas.drawPath(swordPath, Paint()..color = const Color(0xFFCBD5E1));
       canvas.drawRect(
-        Rect.fromCenter(center: Offset(swordX, -halfH * 0.15), width: 6.5 * s, height: 1.5 * s),
+        Rect.fromCenter(center: Offset(swordX, -halfH * 0.15), width: 6.5 * s, height: 1.6 * s),
         Paint()..color = const Color(0xFFD4AF37),
       );
+      canvas.drawCircle(Offset(swordX, -halfH * 0.08), 1.2 * s, Paint()..color = const Color(0xFFD4AF37));
 
     } else if (rank == 12) {
       // KIZ / KRALİÇE (QUEEN - Q)
+      // Zarif Dudak
       canvas.drawArc(
         Rect.fromCenter(center: Offset(0, headY + 2.2 * s), width: 3.2 * s, height: 2.0 * s),
         0.2,
@@ -319,12 +387,13 @@ class VectorCardPainter extends CustomPainter {
           ..strokeWidth = 0.8,
       );
 
+      // İncili Kraliçe Tacı (Tiara)
       final crownY = headY - headR;
       final tiaraPath = Path()
         ..moveTo(-headR * 0.90, crownY + 1.5 * s)
         ..cubicTo(-headR * 0.5, crownY - 5.0 * s, headR * 0.5, crownY - 5.0 * s, headR * 0.90, crownY + 1.5 * s)
         ..lineTo(headR * 0.60, crownY - 0.5 * s)
-        ..lineTo(0, crownY - 6.0 * s)
+        ..lineTo(0, crownY - 6.2 * s)
         ..lineTo(-headR * 0.60, crownY - 0.5 * s)
         ..close();
       canvas.drawPath(tiaraPath, Paint()..color = const Color(0xFFF59E0B));
@@ -335,27 +404,29 @@ class VectorCardPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.7,
       );
+      // İnciler
       for (double px in [-4.0 * s, 0, 4.0 * s]) {
-        canvas.drawCircle(Offset(px, crownY - 2.5 * s), 0.9 * s, Paint()..color = Colors.white);
+        canvas.drawCircle(Offset(px, crownY - 2.8 * s), 0.95 * s, Paint()..color = Colors.white);
       }
 
-      // Sağ elde Kraliyet Çiçeği / Asası
+      // Sağ elde Kraliyet Çiçeği / Asası (Scepter / Flower)
       final flowerX = mw * 0.28;
-      final flowerY = -halfH * 0.50;
+      final flowerY = -halfH * 0.48;
       canvas.drawLine(
-        Offset(flowerX, flowerY + 6 * s),
+        Offset(flowerX, flowerY + 6.5 * s),
         Offset(flowerX, 0),
         Paint()
           ..color = const Color(0xFFD4AF37)
           ..strokeWidth = 1.0,
       );
-      canvas.drawCircle(Offset(flowerX, flowerY), 2.6 * s, Paint()..color = const Color(0xFFE11D48));
-      canvas.drawCircle(Offset(flowerX, flowerY), 1.0 * s, Paint()..color = const Color(0xFFFEF08A));
+      canvas.drawCircle(Offset(flowerX, flowerY), 2.8 * s, Paint()..color = const Color(0xFFE11D48));
+      canvas.drawCircle(Offset(flowerX, flowerY), 1.1 * s, Paint()..color = const Color(0xFFFEF08A));
 
     } else {
-      // VALET / ŞÖVALYE (JACK - J)
+      // VALE / ŞÖVALYE (JACK - J)
+      // Dinamik Genç Yüz ve Çene
       canvas.drawArc(
-        Rect.fromCenter(center: Offset(0, headY + 2.0 * s), width: 4.0 * s, height: 1.5 * s),
+        Rect.fromCenter(center: Offset(0, headY + 2.0 * s), width: 3.8 * s, height: 1.6 * s),
         0.1,
         math.pi - 0.2,
         false,
@@ -365,13 +436,14 @@ class VectorCardPainter extends CustomPainter {
           ..strokeWidth = 0.8,
       );
 
+      // Şövalye Tüylü Başlığı / Beresi (Feathered Cap)
       final capY = headY - headR * 0.6;
       final capPath = Path()
         ..moveTo(-headR * 1.10, capY + 1.0 * s)
         ..cubicTo(-headR * 0.8, capY - 6.5 * s, headR * 0.5, capY - 7.5 * s, headR * 1.05, capY - 1.5 * s)
         ..lineTo(headR * 0.75, capY + 1.5 * s)
         ..close();
-      canvas.drawPath(capPath, Paint()..color = const Color(0xFF2563EB));
+      canvas.drawPath(capPath, Paint()..color = const Color(0xFF1E3A8A));
       canvas.drawPath(
         capPath,
         Paint()
@@ -379,36 +451,37 @@ class VectorCardPainter extends CustomPainter {
           ..style = PaintingStyle.stroke
           ..strokeWidth = 0.8,
       );
+      // Geriye süzülen altın tüy
       final featherPath = Path()
         ..moveTo(-headR * 0.70, capY - 3.0 * s)
-        ..cubicTo(-headR * 1.30, capY - 8.0 * s, -headR * 0.90, capY - 11.0 * s, -headR * 0.30, capY - 7.0 * s);
+        ..cubicTo(-headR * 1.35, capY - 8.5 * s, -headR * 0.90, capY - 11.5 * s, -headR * 0.25, capY - 7.5 * s);
       canvas.drawPath(
         featherPath,
         Paint()
           ..color = const Color(0xFFF59E0B)
           ..style = PaintingStyle.stroke
-          ..strokeWidth = 1.3,
+          ..strokeWidth = 1.4,
       );
 
-      // Sağ elde Mızrak
+      // Sağ elde Mızrak / Kargı (Spear / Halberd)
       final spearX = mw * 0.30;
       canvas.drawLine(
-        Offset(spearX, -halfH * 0.80),
+        Offset(spearX, -halfH * 0.82),
         Offset(spearX, 0),
         Paint()
           ..color = const Color(0xFF94A3B8)
           ..strokeWidth = 1.1,
       );
       final spearHead = Path()
-        ..moveTo(spearX, -halfH * 0.85)
-        ..lineTo(spearX + 3.0 * s, -halfH * 0.70)
-        ..lineTo(spearX, -halfH * 0.74)
-        ..lineTo(spearX - 3.0 * s, -halfH * 0.70)
+        ..moveTo(spearX, -halfH * 0.88)
+        ..lineTo(spearX + 3.2 * s, -halfH * 0.72)
+        ..lineTo(spearX, -halfH * 0.76)
+        ..lineTo(spearX - 3.2 * s, -halfH * 0.72)
         ..close();
       canvas.drawPath(spearHead, Paint()..color = const Color(0xFF64748B));
     }
 
-    // Sol üstte minik Takım Sembolü (Suit Vector)
+    // Omuz hizasında minik Takım Sembolü (Suit Insignia)
     final miniSuitX = -mw * 0.28;
     final miniSuitY = -halfH * 0.72;
     _drawSuitVector(canvas, suit, Offset(miniSuitX, miniSuitY), 5.5 * s, color);
@@ -416,8 +489,9 @@ class VectorCardPainter extends CustomPainter {
     canvas.restore();
   }
 
+  /// Kusursuz Pip Matrisi (2..10 Sayı Kartları)
   void _drawPipMatrix(Canvas canvas, double w, double h, Color color) {
-    final double pipSize = (w * 0.19).clamp(8.0, 13.0);
+    final double pipSize = (w * 0.19).clamp(7.5, 13.0);
 
     // Güvenli iç çizim alanı (köşe indekslerine asla değmez!)
     final double leftCol = w * 0.33;
@@ -512,41 +586,198 @@ class VectorCardPainter extends CustomPainter {
     }
   }
 
+  /// Orijinal Joker (Fiziksel Joker) - 3 Uçlu Çıngıraklı Soytarı Şapkası & Maskeli Yüz
   void _paintJoker(Canvas canvas, double w, double h) {
     final center = Offset(w / 2, h / 2);
-    final double starSize = (w * 0.35).clamp(16.0, 28.0);
-    final starPaint = Paint()..color = const Color(0xFFF59E0B);
+    final s = (w / 44.0).clamp(0.60, 1.30);
 
-    final path = Path();
-    for (int i = 0; i < 5; i++) {
-      final double rExt = starSize;
-      final double rInt = starSize * 0.45;
-      final double aExt = (i * 72 - 90) * math.pi / 180;
-      final double aInt = (i * 72 + 36 - 90) * math.pi / 180;
-      if (i == 0) {
-        path.moveTo(center.dx + rExt * math.cos(aExt), center.dy + rExt * math.sin(aExt));
-      } else {
-        path.lineTo(center.dx + rExt * math.cos(aExt), center.dy + rExt * math.sin(aExt));
-      }
-      path.lineTo(center.dx + rInt * math.cos(aInt), center.dy + rInt * math.sin(aInt));
+    // 1. Köşe İndeksleri: Çift Taraflı "J O K E R" ve Yıldız
+    _paintJokerCorner(canvas, w, h, isTop: true);
+    if (h >= 50) {
+      _paintJokerCorner(canvas, w, h, isTop: false);
     }
-    path.close();
-    canvas.drawPath(path, starPaint);
 
-    // JOKER Yazısı
-    final textSpan = const TextSpan(
-      text: 'JOKER',
+    // 2. Merkez Paneli (Altın İnce Çerçeve ve Zemin)
+    final mw = (w * 0.58).clamp(24.0, 50.0);
+    final mh = (h * 0.66).clamp(34.0, 76.0);
+    final rect = Rect.fromCenter(center: center, width: mw, height: mh);
+    final rrect = RRect.fromRectAndRadius(rect, const Radius.circular(5.0));
+
+    final bgPaint = Paint()..color = const Color(0xFFFAF5FF); // Asil hafif lavanta zemin
+    canvas.drawRRect(rrect, bgPaint);
+    final borderPaint = Paint()
+      ..color = const Color(0xFFD4AF37)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.0;
+    canvas.drawRRect(rrect, borderPaint);
+
+    // 3. JESTİ / SOYTARI ÇİZİMİ
+    final faceY = center.dy + 1 * s;
+    final faceR = 6.0 * s;
+
+    // A. 3 Uçlu Çıngıraklı Soytarı Şapkası (Jester Tricorne Cap)
+    final capBaseY = faceY - faceR * 0.5;
+
+    // Sol Boynuz (Left Horn)
+    final leftHorn = Path()
+      ..moveTo(center.dx - faceR * 0.8, capBaseY)
+      ..cubicTo(
+        center.dx - faceR * 1.8, capBaseY - 6 * s,
+        center.dx - faceR * 2.2, capBaseY - 14 * s,
+        center.dx - faceR * 1.4, capBaseY - 17 * s,
+      )
+      ..cubicTo(
+        center.dx - faceR * 0.9, capBaseY - 15 * s,
+        center.dx - faceR * 0.4, capBaseY - 8 * s,
+        center.dx, capBaseY - 6 * s,
+      )
+      ..close();
+    canvas.drawPath(leftHorn, Paint()..color = const Color(0xFF7C3AED)); // Mor
+
+    // Orta Boynuz (Center Horn)
+    final centerHorn = Path()
+      ..moveTo(center.dx - faceR * 0.5, capBaseY - 4 * s)
+      ..cubicTo(
+        center.dx - faceR * 0.3, capBaseY - 16 * s,
+        center.dx + faceR * 0.3, capBaseY - 16 * s,
+        center.dx + faceR * 0.5, capBaseY - 4 * s,
+      )
+      ..close();
+    canvas.drawPath(centerHorn, Paint()..color = const Color(0xFFF59E0B)); // Altın
+
+    // Sağ Boynuz (Right Horn)
+    final rightHorn = Path()
+      ..moveTo(center.dx + faceR * 0.8, capBaseY)
+      ..cubicTo(
+        center.dx + faceR * 1.8, capBaseY - 6 * s,
+        center.dx + faceR * 2.2, capBaseY - 14 * s,
+        center.dx + faceR * 1.4, capBaseY - 17 * s,
+      )
+      ..cubicTo(
+        center.dx + faceR * 0.9, capBaseY - 15 * s,
+        center.dx + faceR * 0.4, capBaseY - 8 * s,
+        center.dx, capBaseY - 6 * s,
+      )
+      ..close();
+    canvas.drawPath(rightHorn, Paint()..color = const Color(0xFFDC2626)); // Kırmızı
+
+    // Şapka Uçlarındaki Altın Çıngıraklar / Ziller (Bells)
+    final bellPaint = Paint()..color = const Color(0xFFFDE047);
+    final bellBorder = Paint()
+      ..color = const Color(0xFFB45309)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 0.6;
+
+    final bell1 = Offset(center.dx - faceR * 1.4, capBaseY - 17 * s);
+    final bell2 = Offset(center.dx, capBaseY - 16 * s);
+    final bell3 = Offset(center.dx + faceR * 1.4, capBaseY - 17 * s);
+
+    for (final b in [bell1, bell2, bell3]) {
+      canvas.drawCircle(b, 1.8 * s, bellPaint);
+      canvas.drawCircle(b, 1.8 * s, bellBorder);
+    }
+
+    // Şapka Kafa Bandı (Headband)
+    final bandRect = Rect.fromCenter(center: Offset(center.dx, capBaseY), width: faceR * 2.2, height: 2.2 * s);
+    canvas.drawRRect(RRect.fromRectAndRadius(bandRect, const Radius.circular(1.0)), Paint()..color = const Color(0xFFD4AF37));
+
+    // B. Yüz ve Soytarı Maskesi
+    canvas.drawCircle(Offset(center.dx, faceY), faceR, Paint()..color = const Color(0xFFFFF7ED));
+    canvas.drawCircle(
+      Offset(center.dx, faceY),
+      faceR,
+      Paint()
+        ..color = const Color(0xFF7C3AED).withValues(alpha: 0.6)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.7,
+    );
+
+    // Maskeli Gözler
+    final maskPaint = Paint()..color = const Color(0xFF7C3AED);
+    canvas.drawCircle(Offset(center.dx - 2.0 * s, faceY - 0.6 * s), 1.2 * s, maskPaint);
+    canvas.drawCircle(Offset(center.dx + 2.0 * s, faceY - 0.6 * s), 1.2 * s, maskPaint);
+    canvas.drawCircle(Offset(center.dx - 2.0 * s, faceY - 0.6 * s), 0.5 * s, Paint()..color = Colors.white);
+    canvas.drawCircle(Offset(center.dx + 2.0 * s, faceY - 0.6 * s), 0.5 * s, Paint()..color = Colors.white);
+
+    // Güler Yüz (Smile)
+    final smilePath = Path()
+      ..moveTo(center.dx - 2.4 * s, faceY + 2.0 * s)
+      ..quadraticBezierTo(center.dx, faceY + 4.2 * s, center.dx + 2.4 * s, faceY + 2.0 * s);
+    canvas.drawPath(
+      smilePath,
+      Paint()
+        ..color = const Color(0xFFDC2626)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.9,
+    );
+
+    // C. Fırfırlı Kraliyet Yakalığı (Accordion Ruff Collar)
+    final collarY = faceY + faceR * 0.9;
+    final ruffPath = Path();
+    ruffPath.moveTo(center.dx - faceR * 1.4, collarY);
+    for (int i = 0; i < 5; i++) {
+      final double x1 = center.dx - faceR * 1.4 + (i * 2 + 1) * (faceR * 1.4 / 5);
+      final double x2 = center.dx - faceR * 1.4 + (i * 2 + 2) * (faceR * 1.4 / 5);
+      ruffPath.lineTo(x1, collarY + 3.8 * s);
+      ruffPath.lineTo(x2, collarY);
+    }
+    ruffPath.close();
+    canvas.drawPath(ruffPath, Paint()..color = const Color(0xFFF59E0B));
+    canvas.drawPath(
+      ruffPath,
+      Paint()
+        ..color = const Color(0xFFB45309)
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 0.7,
+    );
+  }
+
+  void _paintJokerCorner(Canvas canvas, double w, double h, {required bool isTop}) {
+    canvas.save();
+    if (!isTop) {
+      canvas.translate(w, h);
+      canvas.rotate(math.pi);
+    }
+
+    final double padX = (w * 0.075).clamp(2.5, 4.5);
+    final double padY = (h * 0.045).clamp(2.0, 4.0);
+    final double fontSize = (w * 0.16).clamp(7.0, 10.0);
+
+    // Yıldız
+    final starSpan = TextSpan(
+      text: '★',
       style: TextStyle(
-        color: Color(0xFF7C3AED),
-        fontSize: 10,
-        fontWeight: FontWeight.w900,
-        letterSpacing: 1.5,
+        color: const Color(0xFFF59E0B),
+        fontSize: fontSize + 1,
+        fontWeight: FontWeight.bold,
       ),
     );
-    final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
-    tp.layout();
-    tp.paint(canvas, Offset(center.dx - tp.width / 2, center.dy + starSize * 1.1));
+    final stp = TextPainter(text: starSpan, textDirection: TextDirection.ltr);
+    stp.layout();
+    stp.paint(canvas, Offset(padX, padY));
+
+    // Dikey J O K E R yazısı
+    const letters = ['J', 'O', 'K', 'E', 'R'];
+    double curY = padY + stp.height + 0.5;
+    for (final char in letters) {
+      final textSpan = TextSpan(
+        text: char,
+        style: TextStyle(
+          color: const Color(0xFF7C3AED),
+          fontSize: fontSize * 0.85,
+          fontWeight: FontWeight.w900,
+          height: 1.0,
+        ),
+      );
+      final tp = TextPainter(text: textSpan, textDirection: TextDirection.ltr);
+      tp.layout();
+      tp.paint(canvas, Offset(padX + (stp.width - tp.width) / 2, curY));
+      curY += tp.height * 0.85;
+    }
+
+    canvas.restore();
   }
+
 
   /// Gerçek Vektörel İskambil Sembolü Çizimi (Maça, Kupa, Karo, Sinek)
   void _drawSuitVector(

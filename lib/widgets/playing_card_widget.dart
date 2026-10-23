@@ -110,20 +110,61 @@ class PlayingCardWidget extends StatelessWidget {
               ),
             ),
 
-          // 4. Yardımlı Modda Joker Yıldız İpucu (Sağ üst altın yıldız)
+          // 4. Yardımlı Modda Joker Yıldız İpucu (Sağ üst altın rozet / yıldız)
           if (isIndicatorWild)
             Positioned(
-              top: 2,
-              right: 3,
+              top: 2.5,
+              right: 3.0,
               child: IgnorePointer(
-                child: Text(
-                  '★',
-                  style: TextStyle(
-                    color: const Color(0xFFD97706),
-                    fontSize: (width * 0.15).clamp(8.0, 12.0),
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                child: width >= 50
+                    ? Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                          ),
+                          borderRadius: BorderRadius.circular(4),
+                          boxShadow: const [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '★ JOKER',
+                          style: TextStyle(
+                            color: const Color(0xFF451A03),
+                            fontSize: (width * 0.11).clamp(6.5, 8.5),
+                            fontWeight: FontWeight.w900,
+                            letterSpacing: 0.2,
+                          ),
+                        ),
+                      )
+                    : Container(
+                        padding: const EdgeInsets.all(1.5),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFF59E0B),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 2,
+                              offset: Offset(0, 1),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          '★',
+                          style: TextStyle(
+                            color: const Color(0xFF451A03),
+                            fontSize: (width * 0.14).clamp(7.0, 9.5),
+                            fontWeight: FontWeight.w900,
+                            height: 1.0,
+                          ),
+                        ),
+                      ),
               ),
             ),
 
