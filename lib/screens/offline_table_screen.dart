@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../engine/card_model.dart';
+import '../engine/game_engine.dart';
 import '../engine/offline_table_controller.dart';
 import '../services/sound_fx.dart';
 import '../widgets/playing_card_widget.dart';
@@ -26,6 +27,102 @@ class OfflineTableScreen extends StatefulWidget {
 
   @override
   State<OfflineTableScreen> createState() => _OfflineTableScreenState();
+
+  /// Satır içerisindeki per bitiş indekslerini tespit eder (Aynı satırdaki per grupları arasında ayrım için)
+  @visibleForTesting
+  static List<int> findMeldEndIndices(List<CardModel> cards, int wildRank) {
+    final result = <int>[];
+    final n = cards.length;
+    if (n < 4) return result;
+
+    int i = 0;
+    while (i < n) {
+      int foundLen = 0;
+      final maxLen = n - i;
+      for (int len = maxLen; len >= 3; len--) {
+        final sub = cards.sublist(i, i + len);
+        if (GameEngine.isValidMeld(sub, wildRank)) {
+          foundLen = len;
+          break;
+        }
+      }
+
+      if (foundLen > 0) {
+        // Eğer bu per satırın başından başlamıyorsa, önceki kart ile arasına boşluk koy
+        if (i > 0 && !result.contains(i - 1)) {
+          result.add(i - 1);
+        }
+        final endIndex = i + foundLen - 1;
+        // Eğer bu perden sonra da kartlar varsa, sonrasına da boşluk koy
+        if (endIndex < n - 1 && !result.contains(endIndex)) {
+          result.add(endIndex);
+        }
+        i = endIndex + 1;
+      } else {
+        i++;
+      }
+    }
+    return result;
+  }
+
+  /// 12-16 dp per ayrım boşluğu ve ekran sınırlarını taşmayan dinamik kart koordinatları
+  @visibleForTesting
+  static List<double> calculateCardLefts(
+    int count,
+    double maxW,
+    double cardW,
+    List<int> gapIndices,
+  ) {
+    if (count == 0) return const [];
+
+    const double leftPadding = 34.0;
+    const double rightPadding = 14.0;
+    final double usableW = (maxW - leftPadding - rightPadding).clamp(60.0, maxW);
+
+    if (count == 1) {
+      final startX = leftPadding + ((usableW - cardW) / 2).clamp(0.0, usableW);
+      return [startX];
+    }
+
+    final int k = gapIndices.length;
+    const double desiredGap = 14.0; // 12-16 dp kuralına tam uygun sabit boşluk
+    double gap = desiredGap;
+    double stepX;
+
+    // Hedef: cardW + (count - 1) * stepX + k * gap <= usableW
+    final double spaceForStepsWithDesiredGap = usableW - cardW - (k * desiredGap);
+    final double candStep = spaceForStepsWithDesiredGap / (count - 1);
+
+    if (candStep >= 24.0) {
+      stepX = candStep.clamp(24.0, cardW + 6.0);
+      gap = desiredGap;
+    } else {
+      // Dar ekranlarda önce kart okunabilirliğini koru (min 24dp basamak)
+      stepX = 24.0;
+      final double remainingForGaps = usableW - cardW - (count - 1) * 24.0;
+      gap = k > 0 ? (remainingForGaps / k).clamp(0.0, desiredGap) : 0.0;
+      if (remainingForGaps < 0) {
+        // Aşırı dar veya bölünmüş ekranlarda taşmayı sıfırlamak için stepX'i daralt
+        stepX = ((usableW - cardW) / (count - 1)).clamp(16.0, cardW + 6.0);
+        gap = 0.0;
+      }
+    }
+
+    final double totalRowW = cardW + stepX * (count - 1) + gap * k;
+    final double startX =
+        leftPadding + ((usableW - totalRowW) / 2).clamp(0.0, usableW);
+
+    final lefts = <double>[];
+    double currentX = startX;
+    for (int i = 0; i < count; i++) {
+      lefts.add(currentX);
+      currentX += stepX;
+      if (gapIndices.contains(i)) {
+        currentX += gap;
+      }
+    }
+    return lefts;
+  }
 }
 
 class _OfflineTableScreenState extends State<OfflineTableScreen>
@@ -38,7 +135,8 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   List<List<CardModel>> _localRows = [[], [], []];
   String? _draggingCardId;
   Offset _dragGrabOffset = Offset.zero;
-  Offset _dragLocalPos = Offset.zero;
+  final ValueNotifier<Offset> _dragPosNotifier =
+      ValueNotifier<Offset>(Offset.zero);
   int _lastTargetRowIndex = -1;
   int _lastTargetSlotIndex = -1;
 
@@ -52,6 +150,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
 
   @override
   void dispose() {
+    _dragPosNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _ctrl.removeListener(_onTableUpdate);
     _ctrl.stopGame();
@@ -217,13 +316,13 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
 
                   // ORTA CASINO MASASI (Saat Yönünde 4 Koltuk, Gösterge Jokeri, Deste ve Atılan Kağıt)
                   Expanded(
-                    flex: 46,
+                    flex: 44,
                     child: _buildZyngaCasinoTableArea(seats),
                   ),
 
                   // ALT OYUNCU ELİ: 3 SIRALI DİKEY ISTAKA + 60 FPS SÜRÜKLEME + 4 ZYNGA BUTONU
                   Expanded(
-                    flex: 54,
+                    flex: 56,
                     child: RepaintBoundary(
                       child: _buildThreeRowBottomHandAndControls(),
                     ),
@@ -267,124 +366,102 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         ],
       ),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Geri Butonu
-          InkWell(
-            onTap: _confirmAndLeaveTable,
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: const LinearGradient(
-                  colors: [Color(0xFF3E2723), Color(0xFF1B0F0D)],
-                ),
-                border: Border.all(
-                  color: const Color(0xFFD4AF37),
-                  width: 1.3,
-                ),
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                color: Color(0xFFFDE047),
-                size: 13,
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-
-          // Mod Rozeti (Yardımlı / Yardımsız)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: isAssisted
-                    ? const [Color(0xFF1E3A8A), Color(0xFF0F172A)]
-                    : const [Color(0xFF991B1B), Color(0xFF450A0A)],
-              ),
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFD4AF37),
-                width: 1.2,
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  isAssisted ? '✨' : '🔥',
-                  style: const TextStyle(fontSize: 10),
-                ),
-                const SizedBox(width: 3),
-                Text(
-                  isAssisted ? 'Yardımlı' : 'Yardımsız',
-                  style: const TextStyle(
-                    color: Color(0xFFFDE047),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 9.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 6),
-
-          // Tur Rozeti
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
-            decoration: BoxDecoration(
-              color: Colors.black54,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(
-                color: const Color(0xFFD4AF37).withValues(alpha: 0.65),
-              ),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.refresh_rounded, color: Color(0xFFFDE047), size: 12),
-                const SizedBox(width: 3),
-                Text(
-                  'El ${_ctrl.roundNumber}',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 10.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          const Spacer(),
-
-          // 101 Puan Tablosu Butonu
-          InkWell(
-            onTap: () {
-              SoundFx.playCardTap();
-              setState(() => _showScoreboardModal = !_showScoreboardModal);
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              height: 30,
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.black54,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: const Color(0xFFD4AF37)),
-              ),
-              child: const Row(
+          // Sol Grup: Geri, Mod Rozeti, Tur Rozeti
+          Flexible(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.leaderboard, color: Color(0xFFFDE047), size: 13),
-                  SizedBox(width: 3),
-                  Text(
-                    '101',
-                    style: TextStyle(
-                      color: Color(0xFFFDE047),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 10.5,
+                  // Geri Butonu
+                  InkWell(
+                    onTap: _confirmAndLeaveTable,
+                    borderRadius: BorderRadius.circular(16),
+                    child: Container(
+                      width: 30,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF3E2723), Color(0xFF1B0F0D)],
+                        ),
+                        border: Border.all(
+                          color: const Color(0xFFD4AF37),
+                          width: 1.3,
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Color(0xFFFDE047),
+                        size: 13,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+
+                  // Mod Rozeti (Yardımlı / Yardımsız)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: isAssisted
+                            ? const [Color(0xFF1E3A8A), Color(0xFF0F172A)]
+                            : const [Color(0xFF991B1B), Color(0xFF450A0A)],
+                      ),
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          isAssisted ? '✨' : '🔥',
+                          style: const TextStyle(fontSize: 10),
+                        ),
+                        const SizedBox(width: 3),
+                        Text(
+                          isAssisted ? 'Yardımlı' : 'Yardımsız',
+                          style: const TextStyle(
+                            color: Color(0xFFFDE047),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 9.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 5),
+
+                  // Tur Rozeti
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3.5),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.65),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.refresh_rounded, color: Color(0xFFFDE047), size: 12),
+                        const SizedBox(width: 3),
+                        Text(
+                          'El ${_ctrl.roundNumber}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
@@ -393,31 +470,75 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
           ),
           const SizedBox(width: 6),
 
-          // Ayarlar Dişlisi
-          InkWell(
-            onTap: () {
-              SoundFx.playCardTap();
-              showDialog(
-                context: context,
-                builder: (_) => const SettingsDialog(),
-              );
-            },
-            borderRadius: BorderRadius.circular(16),
-            child: Container(
-              width: 30,
-              height: 30,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.black54,
-                border: Border.all(
-                  color: const Color(0xFFD4AF37).withValues(alpha: 0.65),
+          // Sağ Grup: 101 Skor Tablosu & Ayarlar
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 101 Puan Tablosu Butonu
+                InkWell(
+                  onTap: () {
+                    SoundFx.playCardTap();
+                    setState(() => _showScoreboardModal = !_showScoreboardModal);
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    height: 30,
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(16),
+                      border: Border.all(color: const Color(0xFFD4AF37)),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.leaderboard, color: Color(0xFFFDE047), size: 13),
+                        SizedBox(width: 3),
+                        Text(
+                          '101',
+                          style: TextStyle(
+                            color: Color(0xFFFDE047),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 10.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              child: const Icon(
-                Icons.settings,
-                color: Colors.white70,
-                size: 15,
-              ),
+                const SizedBox(width: 5),
+
+                // Ayarlar Dişlisi
+                InkWell(
+                  onTap: () {
+                    SoundFx.playCardTap();
+                    showDialog(
+                      context: context,
+                      builder: (_) => const SettingsDialog(),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(16),
+                  child: Container(
+                    width: 30,
+                    height: 30,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: Colors.black54,
+                      border: Border.all(
+                        color: const Color(0xFFD4AF37).withValues(alpha: 0.65),
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.settings,
+                      color: Colors.white70,
+                      size: 15,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -988,6 +1109,19 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     );
   }
 
+  /// Satır içerisindeki per bitiş indekslerini tespit eder (Aynı satırdaki per grupları arasında ayrım için)
+  List<int> _findMeldEndIndices(List<CardModel> cards, int wildRank) =>
+      OfflineTableScreen.findMeldEndIndices(cards, wildRank);
+
+  /// 12-16 dp per ayrım boşluğu ve ekran sınırlarını taşmayan dinamik kart koordinatları
+  List<double> _calculateCardLefts(
+    int count,
+    double maxW,
+    double cardW,
+    List<int> gapIndices,
+  ) =>
+      OfflineTableScreen.calculateCardLefts(count, maxW, cardW, gapIndices);
+
   /// 3 Sıralı Dikey Istaka ve Pan Hareketleri
   Widget _buildThreeRowInteractiveRack({
     required Set<String> meldedIds,
@@ -998,32 +1132,41 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
       builder: (context, constraints) {
         final maxW = constraints.maxWidth;
         final maxH = constraints.maxHeight;
-        final rowH = (maxH / 3.0).floorToDouble().clamp(74.0, 126.0);
-        final cardH = (rowH * 0.94).floorToDouble().clamp(68.0, 116.0);
-        final cardW = (cardH * 0.70).floorToDouble().clamp(48.0, 82.0);
+
+        // Küçük ekran uyumu: Satır yüksekliğini maxH / 3.0'a oranla (asla butonların arkasına taşmaz)
+        final rawRowH = (maxH / 3.0).floorToDouble();
+        final rowH = rawRowH.clamp(56.0, 120.0);
+        final cardH = (rowH * 0.90).floorToDouble().clamp(50.0, 110.0);
+        final cardW = (cardH * 0.70).floorToDouble().clamp(36.0, 78.0);
 
         return GestureDetector(
           behavior: HitTestBehavior.translucent,
           onPanStart: (details) {
             final pos = details.localPosition;
-            final hitResult = _hitTestCardWithOffset(pos, maxW, rowH, cardW, cardH);
+            final hitResult =
+                _hitTestCardWithOffset(pos, maxW, rowH, cardW, cardH);
             if (hitResult == null) return;
 
             SoundFx.playCardTap();
             HapticFeedback.selectionClick();
+            _dragGrabOffset = hitResult.grabOffset;
+            _dragPosNotifier.value = pos;
+            _lastTargetRowIndex = hitResult.row;
+            _lastTargetSlotIndex = hitResult.index;
             setState(() {
               _draggingCardId = hitResult.card.id;
-              _dragGrabOffset = hitResult.grabOffset;
-              _dragLocalPos = pos;
-              _lastTargetRowIndex = hitResult.row;
-              _lastTargetSlotIndex = hitResult.index;
             });
           },
           onPanUpdate: (details) {
             if (_draggingCardId == null) return;
             final pos = details.localPosition;
+
+            // 1. Sadece hareket eden yüzen kartın konumunu ValueNotifier ile güncelle (0ms full rebuild)
+            _dragPosNotifier.value = pos;
+
+            // 2. Kart yeni bir sıraya veya slota geçtiyse satır listesini güncelle
             final targetRow = (pos.dy / rowH).floor().clamp(0, 2);
-            _moveDraggedCardToRowSlot(
+            final changed = _moveDraggedCardToRowSlot(
               _draggingCardId!,
               targetRow,
               pos.dx - _dragGrabOffset.dx,
@@ -1031,9 +1174,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               cardW,
             );
 
-            setState(() {
-              _dragLocalPos = pos;
-            });
+            // Sadece gerçek bir slot sırası değiştiğinde ıstakayı yeniden çiz
+            if (changed) {
+              setState(() {});
+            }
           },
           onPanEnd: (_) {
             if (_draggingCardId == null) return;
@@ -1119,7 +1263,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                     renderDraggingCard: false,
                   ),
 
-                // SÜRÜKLENEN KART HER ZAMAN EN ÜSTTE
+                // SÜRÜKLENEN KART HER ZAMAN EN ÜSTTE (ValueNotifier ile izole)
                 if (_draggingCardId != null)
                   _buildFloatingDraggedCard(
                     maxW: maxW,
@@ -1151,15 +1295,8 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     final count = rowCards.length;
     if (count == 0) return const [];
 
-    const double leftPadding = 34.0;
-    const double rightPadding = 14.0;
-    final double usableW = maxW - leftPadding - rightPadding;
-    final double stepX = count > 1
-        ? ((usableW - cardW) / (count - 1)).clamp(26.0, cardW + 8.0)
-        : 0.0;
-    final double totalRowW = cardW + stepX * (count - 1);
-    final double startX =
-        leftPadding + ((usableW - totalRowW) / 2).clamp(0.0, usableW);
+    final gapIndices = _findMeldEndIndices(rowCards, _ctrl.wildRank);
+    final cardLefts = _calculateCardLefts(count, maxW, cardW, gapIndices);
     final double baseTop = rowIdx * rowH + (rowH - cardH) / 2;
 
     final widgets = <Widget>[];
@@ -1176,8 +1313,8 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
       final isWinningDiscard =
           _ctrl.isAssisted && _ctrl.winningDiscardCardId == cardId;
 
-      final double left = startX + idx * stepX;
-      final double top = baseTop - (isSelected ? 8.0 : 0.0);
+      final double left = cardLefts[idx];
+      final double top = baseTop - (isSelected ? 6.0 : 0.0);
 
       widgets.add(
         AnimatedPositioned(
@@ -1229,44 +1366,49 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     }
     if (draggingCard == null) return const SizedBox.shrink();
 
-    final double left = (_dragLocalPos.dx - _dragGrabOffset.dx)
-        .clamp(4.0, maxW - cardW - 4.0);
-    final double top = (_dragLocalPos.dy - _dragGrabOffset.dy)
-        .clamp(-30.0, rowH * 3 - cardH + 10.0);
+    return ValueListenableBuilder<Offset>(
+      valueListenable: _dragPosNotifier,
+      builder: (context, pos, _) {
+        final double left =
+            (pos.dx - _dragGrabOffset.dx).clamp(4.0, maxW - cardW - 4.0);
+        final double top = (pos.dy - _dragGrabOffset.dy)
+            .clamp(-30.0, rowH * 3 - cardH + 10.0);
 
-    return Positioned(
-      key: ValueKey('floating_${draggingCard.id}'),
-      left: left,
-      top: top,
-      child: IgnorePointer(
-        child: Transform.rotate(
-          angle: -0.05,
-          child: Transform.scale(
-            scale: 1.08,
-            child: Container(
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(10),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Colors.black54,
-                    blurRadius: 18,
-                    offset: Offset(0, 8),
+        return Positioned(
+          key: ValueKey('floating_${draggingCard!.id}'),
+          left: left,
+          top: top,
+          child: IgnorePointer(
+            child: Transform.rotate(
+              angle: -0.05,
+              child: Transform.scale(
+                scale: 1.08,
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black54,
+                        blurRadius: 18,
+                        offset: Offset(0, 8),
+                      ),
+                    ],
                   ),
-                ],
-              ),
-              child: PlayingCardWidget(
-                card: draggingCard,
-                wildRank: _ctrl.wildRank,
-                showWildHints: _ctrl.isAssisted,
-                width: cardW,
-                height: cardH,
-                isSelected: true,
-                isMelded: meldedIds.contains(draggingCard.id),
+                  child: PlayingCardWidget(
+                    card: draggingCard,
+                    wildRank: _ctrl.wildRank,
+                    showWildHints: _ctrl.isAssisted,
+                    width: cardW,
+                    height: cardH,
+                    isSelected: true,
+                    isMelded: meldedIds.contains(draggingCard.id),
+                  ),
+                ),
               ),
             ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 
@@ -1282,21 +1424,16 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     if (rowCards.isEmpty) return null;
 
     final count = rowCards.length;
-    const double leftPadding = 34.0;
-    const double rightPadding = 14.0;
-    final double usableW = maxW - leftPadding - rightPadding;
-    final double stepX = count > 1
-        ? ((usableW - cardW) / (count - 1)).clamp(26.0, cardW + 8.0)
-        : 0.0;
-    final double totalRowW = cardW + stepX * (count - 1);
-    final double startX =
-        leftPadding + ((usableW - totalRowW) / 2).clamp(0.0, usableW);
+    final gapIndices = _findMeldEndIndices(rowCards, _ctrl.wildRank);
+    final cardLefts = _calculateCardLefts(count, maxW, cardW, gapIndices);
     final double baseTop = r * rowH + (rowH - cardH) / 2;
 
     for (int i = count - 1; i >= 0; i--) {
-      final left = startX + i * stepX;
-      if (pos.dx >= left && pos.dx <= left + cardW &&
-          pos.dy >= baseTop - 10 && pos.dy <= baseTop + cardH + 10) {
+      final left = cardLefts[i];
+      if (pos.dx >= left &&
+          pos.dx <= left + cardW &&
+          pos.dy >= baseTop - 10 &&
+          pos.dy <= baseTop + cardH + 10) {
         return _HitCardResult(
           card: rowCards[i],
           row: r,
@@ -1308,7 +1445,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     return null;
   }
 
-  void _moveDraggedCardToRowSlot(
+  bool _moveDraggedCardToRowSlot(
     String cardId,
     int targetRow,
     double cardLeftX,
@@ -1328,37 +1465,37 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         break;
       }
     }
-    if (movingCard == null) return;
+    if (movingCard == null) return false;
 
     final destRowList = _localRows[targetRow];
     final countAfter =
         fromRow == targetRow ? destRowList.length : destRowList.length + 1;
-    const double leftPadding = 34.0;
-    const double rightPadding = 14.0;
-    final double usableW = maxW - leftPadding - rightPadding;
-    final double stepX = countAfter > 1
-        ? ((usableW - cardW) / (countAfter - 1)).clamp(26.0, cardW + 8.0)
-        : 0.0;
-    final double totalRowW = cardW + stepX * (countAfter - 1);
-    final double startX =
-        leftPadding + ((usableW - totalRowW) / 2).clamp(0.0, usableW);
+    final gapIndices = _findMeldEndIndices(destRowList, _ctrl.wildRank);
+    final slotLefts = _calculateCardLefts(countAfter, maxW, cardW, gapIndices);
 
     int candidateIdx = 0;
-    if (stepX > 0) {
+    if (slotLefts.isNotEmpty) {
       final double cardCenterX = cardLeftX + cardW / 2;
-      candidateIdx = ((cardCenterX - startX) / stepX)
-          .round()
-          .clamp(0, countAfter - 1);
+      double minDist = double.infinity;
+      for (int i = 0; i < slotLefts.length; i++) {
+        final center = slotLefts[i] + cardW / 2;
+        final dist = (cardCenterX - center).abs();
+        if (dist < minDist) {
+          minDist = dist;
+          candidateIdx = i;
+        }
+      }
     }
 
     if (fromRow == targetRow && candidateIdx == fromIdx) {
       _lastTargetRowIndex = targetRow;
       _lastTargetSlotIndex = candidateIdx;
-      return;
+      return false;
     }
 
-    if (_lastTargetRowIndex == targetRow && _lastTargetSlotIndex == candidateIdx) {
-      return;
+    if (_lastTargetRowIndex == targetRow &&
+        _lastTargetSlotIndex == candidateIdx) {
+      return false;
     }
 
     _lastTargetRowIndex = targetRow;
@@ -1368,6 +1505,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     final clampedInsert = candidateIdx.clamp(0, _localRows[targetRow].length);
     _localRows[targetRow].insert(clampedInsert, movingCard);
     HapticFeedback.selectionClick();
+    return true;
   }
 
   void _moveCardToRowEnd(String cardId, int targetRow) {
