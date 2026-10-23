@@ -131,24 +131,27 @@ class RoundSummaryDialog extends StatelessWidget {
                                   Navigator.of(context).pop();
                                   onMainMenu?.call();
                                 },
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.home_rounded,
-                                      color: Color(0xFFFDE047),
-                                      size: 19,
-                                    ),
-                                    SizedBox(width: 5),
-                                    Text(
-                                      'ANA MENÜ',
-                                      style: TextStyle(
+                                child: const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        Icons.home_rounded,
                                         color: Color(0xFFFDE047),
-                                        fontSize: 12.5,
-                                        fontWeight: FontWeight.bold,
+                                        size: 19,
                                       ),
-                                    ),
-                                  ],
+                                      SizedBox(width: 5),
+                                      Text(
+                                        'ANA MENÜ',
+                                        style: TextStyle(
+                                          color: Color(0xFFFDE047),
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),
@@ -181,20 +184,23 @@ class RoundSummaryDialog extends StatelessWidget {
                                     },
                                   );
                                 },
-                                child: const Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(Icons.replay_rounded, size: 20),
-                                    SizedBox(width: 6),
-                                    Text(
-                                      'TEKRAR OYNA 🏆',
-                                      style: TextStyle(
-                                        fontSize: 13.5,
-                                        fontWeight: FontWeight.w900,
-                                        letterSpacing: 0.5,
+                                child: const FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(Icons.replay_rounded, size: 20),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'TEKRAR OYNA 🏆',
+                                        style: TextStyle(
+                                          fontSize: 13.5,
+                                          fontWeight: FontWeight.w900,
+                                          letterSpacing: 0.5,
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
                             ),

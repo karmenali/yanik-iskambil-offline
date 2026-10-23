@@ -36,6 +36,8 @@ class RulesDialog extends StatelessWidget {
                   ],
                 ),
                 IconButton(
+                  tooltip: 'Kapat',
+                  constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                   onPressed: () => Navigator.pop(context),
                   icon: const Icon(Icons.close, color: Colors.white70),
                 ),

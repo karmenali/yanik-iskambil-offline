@@ -68,6 +68,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     ],
                   ),
                   IconButton(
+                    tooltip: 'Kapat',
+                    constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                     icon: const Icon(Icons.close, color: Colors.white70),
                     onPressed: () => Navigator.of(context).pop(),
                   ),

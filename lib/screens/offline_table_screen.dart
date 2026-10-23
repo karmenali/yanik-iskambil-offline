@@ -130,6 +130,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   final _ctrl = OfflineTableController.instance;
   bool _showingSummaryDialog = false;
   bool _showScoreboardModal = false;
+  bool _isConfirmingFinish = false;
 
   // 3 Sıralı Istaka Sürükleme ve Yerel Durum
   List<List<CardModel>> _localRows = [[], [], []];
@@ -376,31 +377,46 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Geri Butonu
-                  InkWell(
-                    onTap: _confirmAndLeaveTable,
-                    borderRadius: BorderRadius.circular(16),
-                    child: Container(
-                      width: 30,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF3E2723), Color(0xFF1B0F0D)],
+                  // Geri Butonu (En az 48x48 dp dokunma alanı)
+                  Semantics(
+                    button: true,
+                    label: 'Masadan ayrıl',
+                    child: Tooltip(
+                      message: 'Masadan Ayrıl',
+                      child: InkWell(
+                        onTap: _confirmAndLeaveTable,
+                        borderRadius: BorderRadius.circular(24),
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(
+                            minWidth: 48,
+                            minHeight: 48,
+                          ),
+                          child: Center(
+                            child: Container(
+                              width: 30,
+                              height: 30,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF3E2723), Color(0xFF1B0F0D)],
+                                ),
+                                border: Border.all(
+                                  color: const Color(0xFFD4AF37),
+                                  width: 1.3,
+                                ),
+                              ),
+                              child: const Icon(
+                                Icons.arrow_back_ios_new_rounded,
+                                color: Color(0xFFFDE047),
+                                size: 13,
+                              ),
+                            ),
+                          ),
                         ),
-                        border: Border.all(
-                          color: const Color(0xFFD4AF37),
-                          width: 1.3,
-                        ),
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back_ios_new_rounded,
-                        color: Color(0xFFFDE047),
-                        size: 13,
                       ),
                     ),
                   ),
-                  const SizedBox(width: 5),
+                  const SizedBox(width: 4),
 
                   // Mod Rozeti (Yardımlı / Yardımsız)
                   Container(
@@ -477,64 +493,94 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // 101 Puan Tablosu Butonu
-                InkWell(
-                  onTap: () {
-                    SoundFx.playCardTap();
-                    setState(() => _showScoreboardModal = !_showScoreboardModal);
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    height: 30,
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: Colors.black54,
+                // 101 Puan Tablosu Butonu (En az 48x48 dp dokunma alanı)
+                Semantics(
+                  button: true,
+                  label: '101 Skor Tablosu',
+                  child: Tooltip(
+                    message: '101 Skor Tablosu',
+                    child: InkWell(
+                      onTap: () {
+                        SoundFx.playCardTap();
+                        setState(() => _showScoreboardModal = !_showScoreboardModal);
+                      },
                       borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFD4AF37)),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.leaderboard, color: Color(0xFFFDE047), size: 13),
-                        SizedBox(width: 3),
-                        Text(
-                          '101',
-                          style: TextStyle(
-                            color: Color(0xFFFDE047),
-                            fontWeight: FontWeight.w900,
-                            fontSize: 10.5,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        child: Center(
+                          child: Container(
+                            height: 30,
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: Colors.black54,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(color: const Color(0xFFD4AF37)),
+                            ),
+                            child: const Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.leaderboard, color: Color(0xFFFDE047), size: 13),
+                                SizedBox(width: 3),
+                                Text(
+                                  '101',
+                                  style: TextStyle(
+                                    color: Color(0xFFFDE047),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 10.5,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                const SizedBox(width: 5),
+                const SizedBox(width: 4),
 
-                // Ayarlar Dişlisi
-                InkWell(
-                  onTap: () {
-                    SoundFx.playCardTap();
-                    showDialog(
-                      context: context,
-                      builder: (_) => const SettingsDialog(),
-                    );
-                  },
-                  borderRadius: BorderRadius.circular(16),
-                  child: Container(
-                    width: 30,
-                    height: 30,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.black54,
-                      border: Border.all(
-                        color: const Color(0xFFD4AF37).withValues(alpha: 0.65),
+                // Ayarlar Dişlisi (En az 48x48 dp dokunma alanı)
+                Semantics(
+                  button: true,
+                  label: 'Ayarlar',
+                  child: Tooltip(
+                    message: 'Ayarlar',
+                    child: InkWell(
+                      onTap: () {
+                        SoundFx.playCardTap();
+                        showDialog(
+                          context: context,
+                          builder: (_) => const SettingsDialog(),
+                        );
+                      },
+                      borderRadius: BorderRadius.circular(24),
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(
+                          minWidth: 48,
+                          minHeight: 48,
+                        ),
+                        child: Center(
+                          child: Container(
+                            width: 30,
+                            height: 30,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.black54,
+                              border: Border.all(
+                                color: const Color(0xFFD4AF37).withValues(alpha: 0.65),
+                              ),
+                            ),
+                            child: const Icon(
+                              Icons.settings,
+                              color: Colors.white70,
+                              size: 15,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    child: const Icon(
-                      Icons.settings,
-                      color: Colors.white70,
-                      size: 15,
                     ),
                   ),
                 ),
@@ -1097,9 +1143,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   isGold: false,
                   enabled: isPlaying && isMyTurn && canFinish,
                   glow: isPlaying && isMyTurn && canFinish,
-                  onTap: () {
-                    _ctrl.humanDeclareFinish();
-                  },
+                  onTap: _onDeclareFinishPressed,
                 ),
               ),
             ],
@@ -1107,6 +1151,96 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         ),
       ],
     );
+  }
+
+  /// Yardımsız modda hatalı el açma onayı diyaloğu ve bitiş tetiklemesi
+  void _onDeclareFinishPressed() {
+    if (_isConfirmingFinish) return;
+
+    if (!_ctrl.isAssisted && _ctrl.willHumanFinishCausePenalty()) {
+      _isConfirmingFinish = true;
+      SoundFx.playCardTap();
+      showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogCtx) {
+          return AlertDialog(
+            backgroundColor: const Color(0xFF0F261C),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(18),
+              side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.warning_amber_rounded,
+                    color: Color(0xFFEF4444), size: 28),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Hatalı El Açma Uyarısı',
+                    style: TextStyle(
+                      color: Color(0xFFFDE047),
+                      fontWeight: FontWeight.w900,
+                      fontSize: 16,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Geçersiz el açarsanız 101 ceza alacaksınız. Devam etmek istiyor musunuz?',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 14,
+                height: 1.4,
+              ),
+            ),
+            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  Navigator.of(dialogCtx).pop(false);
+                },
+                child: const Text(
+                  'Vazgeç',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFDC2626),
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.of(dialogCtx).pop(true);
+                },
+                child: const Text(
+                  'Devam Et',
+                  style: TextStyle(
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ],
+          );
+        },
+      ).then((confirmed) {
+        _isConfirmingFinish = false;
+        if (confirmed == true && mounted) {
+          _ctrl.humanDeclareFinish();
+        }
+      });
+    } else {
+      _ctrl.humanDeclareFinish();
+    }
   }
 
   /// Satır içerisindeki per bitiş indekslerini tespit eder (Aynı satırdaki per grupları arasında ayrım için)
@@ -1545,53 +1679,66 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 const Color(0xFF064E3B),
               ];
 
-    return GestureDetector(
-      onTap: enabled ? onTap : null,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        height: 44,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: gradientColors,
-          ),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: enabled ? const Color(0xFFFDE047) : Colors.white24,
-            width: glow ? 2.2 : 1.4,
-          ),
-          boxShadow: [
-            if (glow)
-              BoxShadow(
-                color: (isGold
-                        ? const Color(0xFFFACC15)
-                        : const Color(0xFF10B981))
-                    .withValues(alpha: 0.65),
-                blurRadius: 12,
-                spreadRadius: 1,
-              ),
-            const BoxShadow(
-              color: Colors.black87,
-              blurRadius: 6,
-              offset: Offset(0, 3),
+    return Semantics(
+      button: true,
+      enabled: enabled,
+      label: label.replaceAll('\n', ' '),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: enabled ? onTap : null,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          height: 48,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: gradientColors,
             ),
-          ],
-        ),
-        child: Center(
-          child: Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(
-              color: !enabled
-                  ? Colors.white30
-                  : isGold
-                      ? const Color(0xFF1F1206)
-                      : Colors.white,
-              fontWeight: FontWeight.w900,
-              fontSize: 10.5,
-              height: 1.15,
-              letterSpacing: 0.3,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: enabled ? const Color(0xFFFDE047) : Colors.white24,
+              width: glow ? 2.2 : 1.4,
+            ),
+            boxShadow: [
+              if (glow)
+                BoxShadow(
+                  color: (isGold
+                          ? const Color(0xFFFACC15)
+                          : const Color(0xFF10B981))
+                      .withValues(alpha: 0.65),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                ),
+              const BoxShadow(
+                color: Colors.black87,
+                blurRadius: 6,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2.0),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  style: TextStyle(
+                    color: !enabled
+                        ? Colors.white30
+                        : isGold
+                            ? const Color(0xFF1F1206)
+                            : Colors.white,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 10.5,
+                    height: 1.15,
+                    letterSpacing: 0.3,
+                  ),
+                ),
+              ),
             ),
           ),
         ),
@@ -1728,6 +1875,8 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                           ),
                         ),
                         IconButton(
+                          constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                          tooltip: 'Kapat',
                           onPressed: () => setState(() => _showScoreboardModal = false),
                           icon: const Icon(Icons.close, color: Color(0xFF78350F)),
                         ),

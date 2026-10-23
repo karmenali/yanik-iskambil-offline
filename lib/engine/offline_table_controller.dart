@@ -335,6 +335,40 @@ class OfflineTableController extends ChangeNotifier {
     }
   }
 
+  /// Yardımsız modda el açma butonuna basıldığında hamlenin geçersiz olup olmayacağını
+  /// (doğrudan 101 ceza alınıp alınmayacağını) kontrol eder.
+  bool willHumanFinishCausePenalty() {
+    if (!isHumanTurn || !hasDrawnThisTurn || players.isEmpty || players[0].hand.length != 11) {
+      return false;
+    }
+    final isAssisted = SettingsService.instance.isAssisted;
+    if (isAssisted) {
+      return false; // Yardımlı modda sadece geçerli el açılabilir
+    }
+
+    final candDiscardId = selectedCardId ?? players[0].hand.last.id;
+    final rowMelds = <List<CardModel>>[];
+    bool allRowsValid = true;
+    int meldedCount = 0;
+
+    for (int r = 0; r < 3; r++) {
+      final rowCards =
+          humanRows[r].where((c) => c.id != candDiscardId).toList();
+      if (rowCards.isEmpty) continue;
+      meldedCount += rowCards.length;
+
+      final decomp = GameEngine.decomposeRowIntoMelds(rowCards, wildRank);
+      if (!decomp.valid) {
+        allRowsValid = false;
+        break;
+      }
+      rowMelds.addAll(decomp.melds);
+    }
+
+    final isValid = allRowsValid && meldedCount == 10;
+    return !isValid;
+  }
+
   /// İnsan oyuncu el açar / bitirir
   void humanDeclareFinish() {
     if (!isHumanTurn || !hasDrawnThisTurn || players[0].hand.length != 11) return;

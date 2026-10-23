@@ -97,10 +97,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
                     const Spacer(),
 
-                    // Kurallar Butonu
+                    // Kurallar Butonu (En az 48x48 dp dokunma alanı)
                     IconButton(
                       tooltip: 'Kurallar',
-                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                       onPressed: () => showDialog(
                         context: context,
                         builder: (_) => const RulesDialog(),
@@ -112,10 +112,10 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // Ayarlar Dişlisi
+                    // Ayarlar Dişlisi (En az 48x48 dp dokunma alanı)
                     IconButton(
                       tooltip: 'Ayarlar',
-                      visualDensity: VisualDensity.compact,
+                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                       onPressed: () => showDialog(
                         context: context,
                         builder: (_) => const SettingsDialog(),
