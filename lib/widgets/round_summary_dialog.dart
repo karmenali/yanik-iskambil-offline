@@ -9,6 +9,8 @@ class RoundSummaryDialog extends StatelessWidget {
   final int wildRank;
   final String? winnerMessage;
   final VoidCallback onContinue;
+  final VoidCallback? onPlayAgain;
+  final VoidCallback? onMainMenu;
 
   const RoundSummaryDialog({
     super.key,
@@ -17,6 +19,8 @@ class RoundSummaryDialog extends StatelessWidget {
     required this.wildRank,
     this.winnerMessage,
     required this.onContinue,
+    this.onPlayAgain,
+    this.onMainMenu,
   });
 
   @override
@@ -101,38 +105,130 @@ class RoundSummaryDialog extends StatelessWidget {
                 ),
               ),
 
-              // Devam Et Butonu (Süresiz, oyuncu ne zaman basarsa o zaman devam eder)
+              // Aksiyon Butonları (Oyun bittiyse: Ana Menü ve Tekrar Oyna; Normal tur sonuysa: Devam Et)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: SizedBox(
-                  width: double.infinity,
-                  height: 48,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFD4AF37),
-                      foregroundColor: const Color(0xFF0A2218),
-                      elevation: 4,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
+                child: isGameOver
+                    ? Row(
+                        children: [
+                          // 1. Ana Menü Butonu
+                          Expanded(
+                            flex: 4,
+                            child: SizedBox(
+                              height: 48,
+                              child: OutlinedButton(
+                                style: OutlinedButton.styleFrom(
+                                  side: const BorderSide(
+                                    color: Color(0xFFD4AF37),
+                                    width: 1.5,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  backgroundColor: Colors.black38,
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  onMainMenu?.call();
+                                },
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.home_rounded,
+                                      color: Color(0xFFFDE047),
+                                      size: 19,
+                                    ),
+                                    SizedBox(width: 5),
+                                    Text(
+                                      'ANA MENÜ',
+                                      style: TextStyle(
+                                        color: Color(0xFFFDE047),
+                                        fontSize: 12.5,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+
+                          // 2. Tekrar Oyna Butonu
+                          Expanded(
+                            flex: 6,
+                            child: SizedBox(
+                              height: 48,
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFFD4AF37),
+                                  foregroundColor: const Color(0xFF0A2218),
+                                  elevation: 4,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                ),
+                                onPressed: () {
+                                  Navigator.of(context).pop();
+                                  AdService.instance.showInterstitialAd(
+                                    onDismissed: () {
+                                      if (onPlayAgain != null) {
+                                        onPlayAgain!();
+                                      } else {
+                                        onContinue();
+                                      }
+                                    },
+                                  );
+                                },
+                                child: const Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.replay_rounded, size: 20),
+                                    SizedBox(width: 6),
+                                    Text(
+                                      'TEKRAR OYNA 🏆',
+                                      style: TextStyle(
+                                        fontSize: 13.5,
+                                        fontWeight: FontWeight.w900,
+                                        letterSpacing: 0.5,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      )
+                    : SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            foregroundColor: const Color(0xFF0A2218),
+                            elevation: 4,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                          ),
+                          onPressed: () {
+                            Navigator.of(context).pop();
+                            AdService.instance.showInterstitialAd(
+                              onDismissed: onContinue,
+                            );
+                          },
+                          child: const Text(
+                            'DEVAM ET ➜',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ),
                       ),
-                    ),
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                      // Kullanıcı devam dediğinde reklam göster ve ardından oyuna devam et
-                      AdService.instance.showInterstitialAd(
-                        onDismissed: onContinue,
-                      );
-                    },
-                    child: Text(
-                      isGameOver ? 'YENİ OYUN BAŞLAT 🏆' : 'DEVAM ET ➜',
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                ),
               ),
             ],
           ),

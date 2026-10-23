@@ -70,6 +70,30 @@ class OfflineTableController extends ChangeNotifier {
   final List<RoundHistoryEntry> roundHistory = [];
 
   Timer? _botTimer;
+  bool _isPaused = false;
+  bool get isPaused => _isPaused;
+
+  void pauseGame() {
+    _isPaused = true;
+    _botTimer?.cancel();
+    _botTimer = null;
+  }
+
+  void resumeGame() {
+    if (!_isPaused) return;
+    _isPaused = false;
+    if (status == 'playing' && !isHumanTurn) {
+      _scheduleBotTurn();
+    }
+  }
+
+  void stopGame() {
+    _isPaused = true;
+    _botTimer?.cancel();
+    _botTimer = null;
+    status = 'waiting';
+    notifyListeners();
+  }
 
   bool get isHumanTurn => currentTurnSeat == 0 && status == 'playing';
   OfflinePlayer get humanPlayer => players.isNotEmpty ? players[0] : OfflinePlayer(userId: 'human', username: 'Oyuncu', avatar: 'lion', seatIndex: 0, isBot: false);
@@ -137,6 +161,8 @@ class OfflineTableController extends ChangeNotifier {
 
   void initMatch() {
     _botTimer?.cancel();
+    _botTimer = null;
+    _isPaused = false;
     final settings = SettingsService.instance;
 
     winnerMessage = null;
@@ -464,7 +490,8 @@ class OfflineTableController extends ChangeNotifier {
   /// Bot Hamle Döngüsü
   void _scheduleBotTurn() {
     _botTimer?.cancel();
-    if (status != 'playing' || isHumanTurn) return;
+    _botTimer = null;
+    if (status != 'playing' || _isPaused || isHumanTurn) return;
 
     final bot = players[currentTurnSeat];
     if (bot.isEliminated) {
@@ -472,9 +499,21 @@ class OfflineTableController extends ChangeNotifier {
       return;
     }
 
-    // Bot düşünme süresi (1200ms)
-    _botTimer = Timer(const Duration(milliseconds: 1200), () {
-      if (status != 'playing' || currentTurnSeat != bot.seatIndex) return;
+    if (hasDrawnThisTurn) {
+      // Bot daha önce kart çekmişse (örneğin duraklatılıp devam edildiyse), doğrudan atma adımına geç
+      _scheduleBotDiscard(bot);
+    } else {
+      // Bot henüz kart çekmemiş, kart çekme adımını zamanla
+      _scheduleBotDraw(bot);
+    }
+  }
+
+  void _scheduleBotDraw(OfflinePlayer bot) {
+    _botTimer?.cancel();
+    _botTimer = Timer(const Duration(milliseconds: 1000), () {
+      if (status != 'playing' || _isPaused || currentTurnSeat != bot.seatIndex || hasDrawnThisTurn) {
+        return;
+      }
 
       // 1. Kart çekme kararı (Kural: Yalnızca kapalı desteden çekilir)
       if (drawPile.isEmpty) {
@@ -488,41 +527,49 @@ class OfflineTableController extends ChangeNotifier {
       SoundFx.playCardDraw();
       notifyListeners();
 
-      // 2. Kart atma veya El açma kararı (600ms sonra)
-      _botTimer = Timer(const Duration(milliseconds: 650), () {
-        if (status != 'playing' || currentTurnSeat != bot.seatIndex) return;
+      // 2. Kart atma veya El açma kararını zamanla
+      _scheduleBotDiscard(bot);
+    });
+  }
 
-        // Kazanabiliyor mu?
-        final winCheck = GameEngine.findWinningDiscard(bot.hand, wildRank);
-        if (winCheck.canWin && winCheck.discardCard != null) {
-          final discardCard = winCheck.discardCard!;
-          bot.hand.removeWhere((c) => c.id == discardCard.id);
-          discardPile.add(discardCard);
-          bot.openedMelds = winCheck.evaluation?.melds ?? [];
-          endRound(bot.seatIndex);
-          return;
-        }
+  void _scheduleBotDiscard(OfflinePlayer bot) {
+    _botTimer?.cancel();
+    _botTimer = Timer(const Duration(milliseconds: 650), () {
+      if (status != 'playing' || _isPaused || currentTurnSeat != bot.seatIndex || !hasDrawnThisTurn) {
+        return;
+      }
 
-        // Kazanamıyorsa en gereksiz kartı at
-        final toDiscard = GameEngine.selectBestAutoDiscard(bot.hand, wildRank);
-        bot.hand.removeWhere((c) => c.id == toDiscard.id);
-        discardPile.add(toDiscard);
-        SoundFx.playCardDiscard();
+      // Kazanabiliyor mu?
+      final winCheck = GameEngine.findWinningDiscard(bot.hand, wildRank);
+      if (winCheck.canWin && winCheck.discardCard != null) {
+        final discardCard = winCheck.discardCard!;
+        bot.hand.removeWhere((c) => c.id == discardCard.id);
+        discardPile.add(discardCard);
+        bot.openedMelds = winCheck.evaluation?.melds ?? [];
+        endRound(bot.seatIndex);
+        return;
+      }
 
-        // Deste tükendiyse ve kimse bitmediyse tur sona erer
-        if (drawPile.isEmpty) {
-          endRound(null);
-          return;
-        }
+      // Kazanamıyorsa en gereksiz kartı at
+      final toDiscard = GameEngine.selectBestAutoDiscard(bot.hand, wildRank);
+      bot.hand.removeWhere((c) => c.id == toDiscard.id);
+      discardPile.add(toDiscard);
+      SoundFx.playCardDiscard();
 
-        _advanceTurn();
-      });
+      // Deste tükendiyse ve kimse bitmediyse tur sona erer
+      if (drawPile.isEmpty) {
+        endRound(null);
+        return;
+      }
+
+      _advanceTurn();
     });
   }
 
   /// Tur Sonu Değerlendirmesi (Anında Showdown, Süre Yok)
   void endRound(int? finisherSeat, {int? falseDeclarerSeat}) {
     _botTimer?.cancel();
+    _botTimer = null;
     status = 'round_summary';
     lastFinisherSeat = finisherSeat;
     lastFalseDeclarerSeat = falseDeclarerSeat;
@@ -636,6 +683,7 @@ class OfflineTableController extends ChangeNotifier {
   @override
   void dispose() {
     _botTimer?.cancel();
+    _botTimer = null;
     super.dispose();
   }
 }

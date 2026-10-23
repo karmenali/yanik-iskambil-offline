@@ -130,6 +130,9 @@ void main() {
       final ctrl = OfflineTableController.instance;
       ctrl.initMatch();
 
+      // Deterministik test: Göstergeyi Papaz (13) yaparak As ve 5'in wild olmasını engelle
+      ctrl.wildRank = 13;
+
       // Bot 1 (Ahmet) bitirsin
       ctrl.players[0].hand = [
         // As = 10, 5 = 5 -> toplam 15 ceza
@@ -176,6 +179,74 @@ void main() {
       // En düşük skora sahip olan (105 puanla İnsan) şampiyon olmalı
       expect(ctrl.winnerMessage, contains('Şampiyon'));
       expect(ctrl.winnerMessage, contains('Tebrikler'));
+    });
+
+    test('Lifecycle pauseGame and resumeGame correctly stop and restart bot loop without duplicate draw', () {
+      final ctrl = OfflineTableController.instance;
+      ctrl.initMatch();
+
+      // Bot 1'in sırası olsun
+      ctrl.currentTurnSeat = 1;
+      ctrl.hasDrawnThisTurn = false;
+      final initialBotHandCount = ctrl.players[1].hand.length;
+
+      // Oyunu duraklat
+      ctrl.pauseGame();
+      expect(ctrl.isPaused, isTrue);
+
+      // Duraklatılmışken botun kart sayısı artmamalı
+      expect(ctrl.players[1].hand.length, initialBotHandCount);
+
+      // Botun eline 1 kart çekilmiş gibi işaretleyelim (hasDrawnThisTurn = true)
+      ctrl.players[1].hand.add(ctrl.drawPile.removeAt(0));
+      ctrl.hasDrawnThisTurn = true;
+      final handCountAfterDraw = ctrl.players[1].hand.length;
+
+      // Oyunu devam ettir
+      ctrl.resumeGame();
+      expect(ctrl.isPaused, isFalse);
+
+      // resumeGame botun tekrar kart çekmesini engellemeli (hasDrawnThisTurn zaten true olduğu için)
+      expect(ctrl.players[1].hand.length, handCountAfterDraw);
+      ctrl.pauseGame(); // Temizle
+    });
+
+    test('Game over and replay flow: initMatch cleanly wipes previous match scores, cards, and state', () {
+      final ctrl = OfflineTableController.instance;
+      ctrl.initMatch();
+
+      // Birinci maçı simüle et
+      ctrl.players[0].totalScore = 105;
+      ctrl.players[0].isEliminated = true;
+      ctrl.roundNumber = 5;
+      ctrl.endRound(1);
+      expect(ctrl.winnerMessage, isNotNull);
+
+      // Kullanıcı "TEKRAR OYNA" dediğinde
+      ctrl.initMatch();
+
+      // Durumların sıfırlandığını doğrula
+      expect(ctrl.roundNumber, 1);
+      expect(ctrl.status, 'playing');
+      expect(ctrl.winnerMessage, isNull);
+      expect(ctrl.lastShowdown, isNull);
+      expect(ctrl.roundHistory, isEmpty);
+      expect(ctrl.isPaused, isFalse);
+      for (final p in ctrl.players) {
+        expect(p.totalScore, 0, reason: '${p.username} skoru 0 olmalı');
+        expect(p.isEliminated, isFalse, reason: '${p.username} elenmemiş olmalı');
+        expect(p.hand.length, 10, reason: '${p.username} 10 karta sahip olmalı');
+      }
+      ctrl.pauseGame(); // Timer'ları durdur
+    });
+
+    test('stopGame stops all bot timers and sets status to waiting', () {
+      final ctrl = OfflineTableController.instance;
+      ctrl.initMatch();
+
+      ctrl.stopGame();
+      expect(ctrl.status, 'waiting');
+      expect(ctrl.isPaused, isTrue);
     });
   });
 }

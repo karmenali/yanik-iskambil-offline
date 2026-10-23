@@ -28,7 +28,8 @@ class OfflineTableScreen extends StatefulWidget {
   State<OfflineTableScreen> createState() => _OfflineTableScreenState();
 }
 
-class _OfflineTableScreenState extends State<OfflineTableScreen> {
+class _OfflineTableScreenState extends State<OfflineTableScreen>
+    with WidgetsBindingObserver {
   final _ctrl = OfflineTableController.instance;
   bool _showingSummaryDialog = false;
   bool _showScoreboardModal = false;
@@ -44,14 +45,28 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _syncLocalRowsFromController();
     _ctrl.addListener(_onTableUpdate);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _ctrl.removeListener(_onTableUpdate);
+    _ctrl.stopGame();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.inactive ||
+        state == AppLifecycleState.hidden) {
+      _ctrl.pauseGame();
+    } else if (state == AppLifecycleState.resumed) {
+      _ctrl.resumeGame();
+    }
   }
 
   void _syncLocalRowsFromController() {
@@ -90,6 +105,17 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
             onContinue: () {
               _showingSummaryDialog = false;
               _ctrl.continueAfterRound();
+            },
+            onPlayAgain: () {
+              _showingSummaryDialog = false;
+              _ctrl.initMatch();
+              _syncLocalRowsFromController();
+              if (mounted) setState(() {});
+            },
+            onMainMenu: () {
+              _showingSummaryDialog = false;
+              _ctrl.stopGame();
+              if (mounted) Navigator.of(context).pop();
             },
           ),
         ).then((_) {
@@ -133,6 +159,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
       ),
     );
     if (leave == true && mounted) {
+      _ctrl.stopGame();
       Navigator.of(context).pop();
     }
   }
@@ -207,6 +234,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
 
             // 3. TAM 101 PUAN TABLOSU MODALI (Açıldığında)
             if (_showScoreboardModal) _buildScoreboardOverlay(),
+
+            // 4. OYUN BİTTİ DÖNGÜSÜ GÜVENLİK MODALI
+            if (_ctrl.status == 'game_over' && !_showingSummaryDialog)
+              _buildGameOverOverlay(),
           ],
         ),
       ),
@@ -1791,6 +1822,114 @@ class _OfflineTableScreenState extends State<OfflineTableScreen> {
                   ],
                 ),
               ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildGameOverOverlay() {
+    final winnerMsg = _ctrl.winnerMessage ?? 'Oyun Sona Erdi!';
+    final isHumanWinner = winnerMsg.contains('Tebrikler');
+
+    return Positioned.fill(
+      child: Container(
+        color: Colors.black.withValues(alpha: 0.88),
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Center(
+          child: Container(
+            constraints: const BoxConstraints(maxWidth: 400),
+            padding: const EdgeInsets.all(22),
+            decoration: BoxDecoration(
+              color: const Color(0xFF091C14),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFD4AF37), width: 2),
+              boxShadow: const [
+                BoxShadow(color: Colors.black87, blurRadius: 20, spreadRadius: 4),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isHumanWinner ? '🏆 ŞAMPİYON! 🏆' : '🔥 OYUN BİTTİ',
+                  style: const TextStyle(
+                    color: Color(0xFFFDE047),
+                    fontSize: 22,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  winnerMsg,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(
+                      flex: 4,
+                      child: SizedBox(
+                        height: 46,
+                        child: OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            _ctrl.stopGame();
+                            Navigator.of(context).pop();
+                          },
+                          child: const Text(
+                            'ANA MENÜ',
+                            style: TextStyle(
+                              color: Color(0xFFFDE047),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      flex: 6,
+                      child: SizedBox(
+                        height: 46,
+                        child: ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFD4AF37),
+                            foregroundColor: const Color(0xFF0A2218),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          onPressed: () {
+                            _ctrl.initMatch();
+                            _syncLocalRowsFromController();
+                            setState(() {});
+                          },
+                          child: const Text(
+                            'TEKRAR OYNA 🏆',
+                            style: TextStyle(
+                              fontWeight: FontWeight.w900,
+                              fontSize: 13,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
