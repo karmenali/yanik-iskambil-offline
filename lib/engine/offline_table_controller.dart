@@ -59,7 +59,68 @@ class OfflineTableController extends ChangeNotifier {
   Timer? _botTimer;
 
   bool get isHumanTurn => currentTurnSeat == 0 && status == 'playing';
-  OfflinePlayer get humanPlayer => players[0];
+  OfflinePlayer get humanPlayer => players.isNotEmpty ? players[0] : OfflinePlayer(userId: 'human', username: 'Oyuncu', avatar: 'lion', seatIndex: 0, isBot: false);
+
+  int get drawPileCount => drawPile.length;
+  CardModel? get topDiscardCard => discardPile.isNotEmpty ? discardPile.last : null;
+  bool get isAssisted => SettingsService.instance.isAssisted;
+  bool get isPlaying => status == 'playing';
+  bool get isRoundSummary => status == 'round_summary';
+  bool get isGameOver => status == 'game_over';
+
+  Set<String> get meldedCardIds {
+    if (!isAssisted || players.isEmpty) return <String>{};
+    final eval = GameEngine.evaluateHandOptimal(players[0].hand, wildRank);
+    final ids = <String>{};
+    for (final m in eval.melds) {
+      for (final c in m) {
+        ids.add(c.id);
+      }
+    }
+    return ids;
+  }
+
+  bool get canFinishNow {
+    if (!isHumanTurn || !hasDrawnThisTurn || players.isEmpty || players[0].hand.length != 11) {
+      return false;
+    }
+    if (isAssisted) {
+      final winCheck = GameEngine.findWinningDiscard(
+        players[0].hand,
+        wildRank,
+        preferredDiscardCardId: selectedCardId,
+      );
+      return winCheck.canWin;
+    } else {
+      return true;
+    }
+  }
+
+  String? get winningDiscardCardId {
+    if (!isAssisted || !isHumanTurn || players.isEmpty || players[0].hand.length != 11) {
+      return null;
+    }
+    final winCheck = GameEngine.findWinningDiscard(players[0].hand, wildRank);
+    return winCheck.canWin ? winCheck.discardCard?.id : null;
+  }
+
+  int get currentHandPenalty {
+    if (players.isEmpty) return 0;
+    final eval = GameEngine.evaluateHandOptimal(players[0].hand, wildRank);
+    return eval.penalty;
+  }
+
+  void syncHumanRows(List<List<CardModel>> rows) {
+    humanRows = rows.map((r) => List<CardModel>.from(r)).toList();
+    final all = <CardModel>[];
+    for (final r in humanRows) {
+      all.addAll(r);
+    }
+    if (players.isNotEmpty) {
+      players[0].hand = all;
+    }
+    notifyListeners();
+  }
 
   void initMatch() {
     _botTimer?.cancel();

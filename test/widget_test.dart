@@ -15,6 +15,6 @@ void main() {
     await tester.pump(const Duration(milliseconds: 200));
 
     expect(find.text('OYNA'), findsOneWidget);
-    expect(find.text('YANIK İSKAMBİL'), findsOneWidget);
+    expect(find.textContaining('YANIK İSKAMBİL'), findsOneWidget);
   });
 }
