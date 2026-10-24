@@ -3,6 +3,7 @@ import '../engine/card_model.dart';
 import '../engine/offline_table_controller.dart';
 import '../services/settings_service.dart';
 import '../services/sound_fx.dart';
+import '../widgets/game_logo_widget.dart';
 import 'offline_table_screen.dart';
 import 'rules_dialog.dart';
 import 'settings_dialog.dart';
@@ -15,9 +16,12 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
+  bool _isStartingGame = false;
+
   @override
   void initState() {
     super.initState();
+    OfflineTableController.instance.pauseGame();
     SettingsService.instance.addListener(_onSettingsChanged);
   }
 
@@ -31,12 +35,101 @@ class _HomeScreenState extends State<HomeScreen> {
     if (mounted) setState(() {});
   }
 
-  void _startGame() {
+  Future<void> _handlePlayButton() async {
+    if (_isStartingGame) return;
+    _isStartingGame = true;
+
+    final ctrl = OfflineTableController.instance;
+
+    // Devam eden ve henüz bitmemiş aktif bir oyun varsa onay sor
+    if (ctrl.hasActiveMatch) {
+      final shouldStartNew = await showDialog<bool>(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF091C14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Color(0xFFFDE047), size: 24),
+              SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Yeni Oyun Başlatılsın mı?',
+                  style: TextStyle(
+                    color: Color(0xFFFDE047),
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: const Text(
+            'Devam eden bir oyununuz var. Yeni oyuna başlarsanız mevcut oyun ve puan durumu sıfırlanacaktır.',
+            style: TextStyle(color: Colors.white, fontSize: 13.5, height: 1.4),
+          ),
+          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(ctx).pop(false),
+              child: const Text(
+                'İptal',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                ),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD4AF37),
+                foregroundColor: const Color(0xFF0A2218),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+              onPressed: () => Navigator.of(ctx).pop(true),
+              child: const Text(
+                'Yeni Oyuna Başla',
+                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (shouldStartNew != true) {
+        _isStartingGame = false;
+        return;
+      }
+    }
+
+    _startMatchAndNavigate();
+  }
+
+  void _startMatchAndNavigate() {
     SoundFx.playCardSlide();
     OfflineTableController.instance.initMatch();
+
+    if (!mounted) {
+      _isStartingGame = false;
+      return;
+    }
+
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => const OfflineTableScreen()),
-    );
+    ).then((_) {
+      if (mounted) {
+        setState(() {
+          _isStartingGame = false;
+        });
+      }
+    });
   }
 
   @override
@@ -46,11 +139,18 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF05160F),
-      body: SafeArea(
-        child: SingleChildScrollView(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: RadialGradient(
+            center: Alignment.center,
+            radius: 1.1,
+            colors: [Color(0xFF0C2C1D), Color(0xFF071B11), Color(0xFF040E0A)],
+          ),
+        ),
+        child: SafeArea(
           child: Column(
             children: [
-              // 1. ÜST PROFİL VE AYARLAR BARI (Orijinal Lobby Düzeni)
+              // 1. ÜST BAR: Profil ve Ayarlar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
                 child: Row(
@@ -69,11 +169,18 @@ class _HomeScreenState extends State<HomeScreen> {
                             height: 44,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
-                              color: Colors.black38,
+                              color: const Color(0xFF0B2217),
                               border: Border.all(
                                 color: const Color(0xFFD4AF37),
                                 width: 1.8,
                               ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black45,
+                                  blurRadius: 4,
+                                  offset: Offset(0, 2),
+                                ),
+                              ],
                             ),
                             child: Center(
                               child: Text(
@@ -112,7 +219,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                     ),
 
-                    // Ayarlar Dişlisi (En az 48x48 dp dokunma alanı)
+                    // Ayarlar Butonu (En az 48x48 dp dokunma alanı)
                     IconButton(
                       tooltip: 'Ayarlar',
                       constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
@@ -130,158 +237,93 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 30),
+              const Spacer(flex: 2),
 
-              // 2. ORTA LOGO & YANIK İSKAMBİL VIP MARKASI (Orijinal 90x90 Çapında Maça Logosu)
-              Center(
-                child: Column(
-                  children: [
-                    Container(
-                      width: 90,
-                      height: 90,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        gradient: const RadialGradient(
-                          colors: [Color(0xFF2D1B10), Color(0xFF0F0B08)],
-                        ),
-                        border: Border.all(color: const Color(0xFFD4AF37), width: 2),
-                        boxShadow: [
-                          BoxShadow(
-                            color: const Color(0xFFD4AF37).withValues(alpha: 0.35),
-                            blurRadius: 20,
-                            spreadRadius: 2,
-                          ),
-                        ],
-                      ),
-                      child: const Center(
-                        child: Text(
-                          '♠',
-                          style: TextStyle(
-                            fontSize: 48,
-                            color: Color(0xFFFDE047),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    const Text(
-                      'YANIK İSKAMBİL VIP',
-                      style: TextStyle(
-                        color: Color(0xFFFDE047),
-                        fontWeight: FontWeight.w900,
-                        fontSize: 26,
-                        letterSpacing: 2.0,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    const Text(
-                      'KLASİK İSKAMBİL DENEYİMİ',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 11,
-                        letterSpacing: 1.5,
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Aktif Oyun Modu Rozeti (Tıklayınca Ayarları Açar)
-                    InkWell(
-                      onTap: () => showDialog(
-                        context: context,
-                        builder: (_) => const SettingsDialog(),
-                      ),
-                      borderRadius: BorderRadius.circular(16),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: settings.isAssisted
-                                ? const [Color(0xFF1E3A8A), Color(0xFF0F172A)]
-                                : const [Color(0xFF991B1B), Color(0xFF450A0A)],
-                          ),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: const Color(0xFFD4AF37),
-                            width: 1.2,
-                          ),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(
-                              settings.isAssisted ? '✨' : '🔥',
-                              style: const TextStyle(fontSize: 12),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              settings.isAssisted
-                                  ? 'Mod: Yardımlı Oyun'
-                                  : 'Mod: Yardımsız Usta',
-                              style: const TextStyle(
-                                color: Color(0xFFFDE047),
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                              ),
-                            ),
-                            const SizedBox(width: 6),
-                            const Icon(
-                              Icons.tune_rounded,
-                              color: Color(0xFFFDE047),
-                              size: 13,
-                            ),
-                          ],
-                        ),
-                      ),
+              // 2. MERKEZ LOGO VE BAŞLIK
+              const Center(
+                child: GameLogoWidget(size: 110),
+              ),
+              const SizedBox(height: 18),
+              const Text(
+                'YANIK İSKAMBİL',
+                style: TextStyle(
+                  color: Color(0xFFFDE047),
+                  fontWeight: FontWeight.w900,
+                  fontSize: 28,
+                  letterSpacing: 2.2,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black87,
+                      blurRadius: 8,
+                      offset: Offset(0, 3),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(height: 14),
 
-              const SizedBox(height: 44),
-
-              // 3. ANA OYNA BUTONU (Orijinal Yeşil Menü Butonu)
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: _buildBigMenuButton(
-                  title: 'OYNA',
-                  icon: Icons.play_arrow_rounded,
-                  gradient: const [Color(0xFF059669), Color(0xFF047857)],
-                  borderColor: const Color(0xFF34D399),
-                  onTap: _startGame,
+              // Aktif Tercih Edilen Mod Rozeti (Yardımlı / Yardımsız)
+              InkWell(
+                onTap: () => showDialog(
+                  context: context,
+                  builder: (_) => const SettingsDialog(),
                 ),
-              ),
-
-              const SizedBox(height: 36),
-
-              // 4. ALT BİLGİ ROZETİ
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
+                borderRadius: BorderRadius.circular(16),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.04),
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: Colors.white12),
+                    color: const Color(0xFF081F15),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: const Color(0xFFD4AF37).withValues(alpha: 0.8),
+                      width: 1.2,
+                    ),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Colors.black38,
+                        blurRadius: 6,
+                        offset: Offset(0, 2),
+                      ),
+                    ],
                   ),
-                  child: const Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
-                      Icon(Icons.wifi_off_rounded, color: Colors.white54, size: 16),
-                      SizedBox(width: 8),
                       Text(
-                        '1 Oyuncu + 3 Bot • %100 Çevrimdışı',
-                        style: TextStyle(
-                          color: Colors.white60,
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                        settings.isAssisted ? '✨' : '🔥',
+                        style: const TextStyle(fontSize: 13),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        settings.isAssisted ? 'Yardımlı Mod' : 'Yardımsız Mod',
+                        style: const TextStyle(
+                          color: Color(0xFFFDE047),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12.5,
                         ),
+                      ),
+                      const SizedBox(width: 6),
+                      const Icon(
+                        Icons.tune_rounded,
+                        color: Color(0xFFFDE047),
+                        size: 14,
                       ),
                     ],
                   ),
                 ),
               ),
-              const SizedBox(height: 24),
+
+              const Spacer(flex: 3),
+
+              // 3. GÜÇLÜ VE KOLAY FARK EDİLEN OYNA BUTONU
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 28),
+                child: _buildPlayButton(
+                  onTap: _handlePlayButton,
+                ),
+              ),
+
+              const Spacer(flex: 2),
             ],
           ),
         ),
@@ -289,25 +331,23 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildBigMenuButton({
-    required String title,
-    required IconData icon,
-    required List<Color> gradient,
-    required Color borderColor,
-    required VoidCallback onTap,
-  }) {
+  Widget _buildPlayButton({required VoidCallback onTap}) {
     return Container(
       width: double.infinity,
-      height: 58,
+      height: 60,
       decoration: BoxDecoration(
-        gradient: LinearGradient(colors: gradient),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: borderColor, width: 1.5),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF059669), Color(0xFF047857), Color(0xFF065F46)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFF34D399), width: 1.8),
         boxShadow: const [
           BoxShadow(
             color: Colors.black54,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            blurRadius: 14,
+            offset: Offset(0, 5),
           ),
         ],
       ),
@@ -315,27 +355,25 @@ class _HomeScreenState extends State<HomeScreen> {
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
+          borderRadius: BorderRadius.circular(18),
+          child: const Center(
             child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(icon, color: const Color(0xFFFDE047), size: 28),
-                const SizedBox(width: 14),
+                Icon(
+                  Icons.play_arrow_rounded,
+                  color: Color(0xFFFDE047),
+                  size: 34,
+                ),
+                SizedBox(width: 10),
                 Text(
-                  title,
-                  style: const TextStyle(
+                  'OYNA',
+                  style: TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w900,
-                    fontSize: 18,
-                    letterSpacing: 1.2,
+                    fontSize: 20,
+                    letterSpacing: 2.0,
                   ),
-                ),
-                const Spacer(),
-                const Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  color: Colors.white70,
-                  size: 16,
                 ),
               ],
             ),

@@ -1282,7 +1282,6 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
             if (hitResult == null) return;
 
             SoundFx.playCardTap();
-            HapticFeedback.selectionClick();
             _dragGrabOffset = hitResult.grabOffset;
             _dragPosNotifier.value = pos;
             _lastTargetRowIndex = hitResult.row;
@@ -1453,7 +1452,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
       widgets.add(
         AnimatedPositioned(
           key: ValueKey(cardId),
-          duration: const Duration(milliseconds: 140),
+          duration: const Duration(milliseconds: 220),
           curve: Curves.easeOutCubic,
           left: left,
           top: top,
@@ -1463,15 +1462,20 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 SoundFx.playCardTap();
                 _ctrl.selectCard(cardId);
               },
-              child: PlayingCardWidget(
-                card: card,
-                wildRank: _ctrl.wildRank,
-                showWildHints: _ctrl.isAssisted,
-                width: cardW,
-                height: cardH,
-                isSelected: isSelected,
-                isMelded: isMelded,
-                isWinningDiscardCandidate: isWinningDiscard,
+              child: AnimatedScale(
+                scale: isSelected ? 1.05 : 1.0,
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                child: PlayingCardWidget(
+                  card: card,
+                  wildRank: _ctrl.wildRank,
+                  showWildHints: _ctrl.isAssisted,
+                  width: cardW,
+                  height: cardH,
+                  isSelected: isSelected,
+                  isMelded: isMelded,
+                  isWinningDiscardCandidate: isWinningDiscard,
+                ),
               ),
             ),
           ),
@@ -1638,7 +1642,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     _localRows[fromRow].removeAt(fromIdx);
     final clampedInsert = candidateIdx.clamp(0, _localRows[targetRow].length);
     _localRows[targetRow].insert(clampedInsert, movingCard);
-    HapticFeedback.selectionClick();
+    SoundFx.triggerHaptic(HapticFeedback.selectionClick);
     return true;
   }
 

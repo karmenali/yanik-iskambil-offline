@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'dart:math' as math;
 import 'dart:typed_data';
 import 'package:audioplayers/audioplayers.dart';
@@ -7,6 +8,7 @@ import 'settings_service.dart';
 
 class SoundFx {
   static AudioPlayer? _sfxPlayer;
+  static bool get _isTest => Platform.environment.containsKey('FLUTTER_TEST');
   static AudioPlayer get _player => _sfxPlayer ??= AudioPlayer();
   static final Map<String, Uint8List> _wavCache = {};
   static bool _isInitialized = false;
@@ -14,9 +16,12 @@ class SoundFx {
   static Future<void> init() async {
     if (_isInitialized) return;
     try {
-      await _player.setReleaseMode(ReleaseMode.stop);
-      await _player.setPlayerMode(PlayerMode.lowLatency);
+      if (!_isTest) {
+        await _player.setReleaseMode(ReleaseMode.stop);
+        await _player.setPlayerMode(PlayerMode.lowLatency);
+      }
       // Ses önbelleğini hemen hazırla
+      _wavCache['card_draw'] = _generateCardDrawWav();
       _wavCache['card_slide'] = _generateCardSlideWav();
       _wavCache['card_discard'] = _generateCardDiscardWav();
       _wavCache['card_tap'] = _generateCardTapWav();
@@ -26,37 +31,43 @@ class SoundFx {
   }
 
   static void playCardDraw() {
-    playCardSlide();
+    triggerHaptic(HapticFeedback.lightImpact);
+    if (!SettingsService.instance.soundEnabled) return;
+    _playAcousticSfx('card_draw', _generateCardDrawWav);
   }
 
   static void playCardSlide() {
-    _triggerHaptic(HapticFeedback.selectionClick);
+    triggerHaptic(HapticFeedback.selectionClick);
     if (!SettingsService.instance.soundEnabled) return;
     _playAcousticSfx('card_slide', _generateCardSlideWav);
   }
 
   static void playCardDiscard() {
-    _triggerHaptic(HapticFeedback.mediumImpact);
+    triggerHaptic(HapticFeedback.mediumImpact);
     if (!SettingsService.instance.soundEnabled) return;
     _playAcousticSfx('card_discard', _generateCardDiscardWav);
   }
 
   static void playCardTap() {
-    _triggerHaptic(HapticFeedback.lightImpact);
+    triggerHaptic(HapticFeedback.lightImpact);
     if (!SettingsService.instance.soundEnabled) return;
     _playAcousticSfx('card_tap', _generateCardTapWav);
   }
 
   static void playCelebration() {
-    _triggerHaptic(HapticFeedback.heavyImpact);
+    triggerHaptic(HapticFeedback.heavyImpact);
     if (!SettingsService.instance.soundEnabled) return;
     _playAcousticSfx('celebration', _generateCelebrationWav);
   }
 
-  static void _triggerHaptic(Future<void> Function() hapticFn) {
+  static void triggerHaptic([Future<void> Function()? hapticFn]) {
     if (SettingsService.instance.vibrationEnabled) {
       try {
-        hapticFn();
+        if (hapticFn != null) {
+          hapticFn();
+        } else {
+          HapticFeedback.selectionClick();
+        }
       } catch (_) {}
     }
   }
@@ -65,6 +76,7 @@ class SoundFx {
     String key,
     Uint8List Function() generator,
   ) {
+    if (_isTest) return; // Unit test ortamında native ses sürücüsü çağrılmaz
     try {
       final wav = _wavCache.putIfAbsent(key, generator);
       _player.play(BytesSource(wav), mode: PlayerMode.lowLatency).catchError((_) {});
@@ -72,6 +84,26 @@ class SoundFx {
   }
 
   // Akustik WAV Sentezleyiciler
+  static Uint8List _generateCardDrawWav() {
+    const sampleRate = 22050;
+    const durationMs = 95;
+    final totalSamples = (sampleRate * durationMs / 1000).round();
+    final pcm = Uint8List(totalSamples);
+    final rand = math.Random(42);
+
+    for (int i = 0; i < totalSamples; i++) {
+      final t = i / totalSamples;
+      // Kart çekme: Yumuşak yükselen hava sürtünmesi ve çıtırtı zarfı
+      final env = math.sin(t * math.pi * 0.90);
+      final freq = 280.0 + (t * 220.0);
+      final sine = math.sin(2 * math.pi * freq * (i / sampleRate));
+      final noise = (rand.nextDouble() * 2 - 1) * 0.40;
+      final sample = ((sine * 0.60 + noise) * env * 65).round();
+      pcm[i] = (sample + 128).clamp(0, 255);
+    }
+    return _createWavHeader(pcm, sampleRate);
+  }
+
   static Uint8List _generateCardSlideWav() {
     const sampleRate = 22050;
     const durationMs = 120;

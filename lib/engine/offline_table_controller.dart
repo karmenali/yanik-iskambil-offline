@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'card_model.dart';
 import 'game_engine.dart';
+import 'hand_sorter.dart';
 import '../services/settings_service.dart';
 import '../services/sound_fx.dart';
 
@@ -104,6 +105,10 @@ class OfflineTableController extends ChangeNotifier {
   bool get isPlaying => status == 'playing';
   bool get isRoundSummary => status == 'round_summary';
   bool get isGameOver => status == 'game_over';
+  bool get hasActiveMatch =>
+      (status == 'playing' || status == 'dealing' || status == 'round_summary') &&
+      players.isNotEmpty &&
+      players.any((p) => p.hand.isNotEmpty);
 
   Set<String> get meldedCardIds {
     if (!isAssisted || players.isEmpty) return <String>{};
@@ -457,20 +462,18 @@ class OfflineTableController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Sayı Sırala butonu
+  /// Sayı Sırala butonu: HandSorter kurallarına göre deterministik sıralama yapar.
   void humanSortRanks() {
-    final sorted = List<CardModel>.from(players[0].hand)
-      ..sort((a, b) {
-        final aWild = GameEngine.isWildCard(a, wildRank) ? 1 : 0;
-        final bWild = GameEngine.isWildCard(b, wildRank) ? 1 : 0;
-        if (aWild != bWild) return aWild.compareTo(bWild);
-        if (a.rank != b.rank) return a.rank.compareTo(b.rank);
-        return a.suit.compareTo(b.suit);
-      });
+    if (players.isEmpty || players[0].hand.isEmpty) return;
+    final sorted = HandSorter.sortHand(players[0].hand);
+    players[0].hand = List<CardModel>.from(sorted);
 
+    // 3 ıstaka sırasına dengeli ve okunabilir yerleştir (küçük ranklar üst sırada, büyükler ve jokerler alt sıralarda)
     humanRows = [[], [], []];
+    final perRow = (sorted.length / 3.0).ceil();
     for (int i = 0; i < sorted.length; i++) {
-      humanRows[i % 3].add(sorted[i]);
+      final r = (i / perRow).floor().clamp(0, 2);
+      humanRows[r].add(sorted[i]);
     }
     SoundFx.playCardTap();
     notifyListeners();

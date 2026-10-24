@@ -13,7 +13,7 @@ class SettingsService extends ChangeNotifier {
 
   bool _isAssisted = true; // true = Yardımlı Mod (varsayılan), false = Yardımsız Mod
   bool _soundEnabled = true;
-  bool _vibrationEnabled = true;
+  bool _vibrationEnabled = false; // Kayıtlı tercih yoksa varsayılan KAPALI
   String _playerName = 'Oyuncu';
   String _playerAvatar = 'lion';
 
@@ -27,7 +27,7 @@ class SettingsService extends ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _isAssisted = prefs.getBool(_keyAssisted) ?? true;
     _soundEnabled = prefs.getBool(_keySound) ?? true;
-    _vibrationEnabled = prefs.getBool(_keyVibration) ?? true;
+    _vibrationEnabled = prefs.getBool(_keyVibration) ?? false;
     _playerName = prefs.getString(_keyPlayerName) ?? 'Oyuncu';
     _playerAvatar = prefs.getString(_keyPlayerAvatar) ?? 'lion';
     notifyListeners();
