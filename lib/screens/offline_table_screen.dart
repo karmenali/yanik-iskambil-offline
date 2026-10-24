@@ -125,12 +125,40 @@ class OfflineTableScreen extends StatefulWidget {
   }
 }
 
+class _FlyingCardInfo {
+  final CardModel? card;
+  final Offset startPos;
+  final Offset endPos;
+  final double startScale;
+  final double endScale;
+
+  _FlyingCardInfo({
+    required this.card,
+    required this.startPos,
+    required this.endPos,
+    this.startScale = 1.0,
+    this.endScale = 1.0,
+  });
+}
+
 class _OfflineTableScreenState extends State<OfflineTableScreen>
-    with WidgetsBindingObserver {
+    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
   final _ctrl = OfflineTableController.instance;
   bool _showingSummaryDialog = false;
   bool _showScoreboardModal = false;
   bool _isConfirmingFinish = false;
+
+  // Uçan Kart Hareketi (Havada süzülme animasyonu)
+  late AnimationController _flightAnimController;
+  late Animation<double> _flightCurve;
+  _FlyingCardInfo? _flyingCard;
+  bool _isFlightAnimating = false;
+  String? _hiddenDiscardingCardId;
+
+  final GlobalKey _drawDeckKey = GlobalKey();
+  final GlobalKey _discardPileKey = GlobalKey();
+  final GlobalKey _rackKey = GlobalKey();
+  final Map<String, GlobalKey> _cardKeys = {};
 
   // 3 Sıralı Istaka Sürükleme ve Yerel Durum
   List<List<CardModel>> _localRows = [[], [], []];
@@ -145,12 +173,21 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    _flightAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 230),
+    );
+    _flightCurve = CurvedAnimation(
+      parent: _flightAnimController,
+      curve: Curves.easeOutCubic,
+    );
     _syncLocalRowsFromController();
     _ctrl.addListener(_onTableUpdate);
   }
 
   @override
   void dispose() {
+    _flightAnimController.dispose();
     _dragPosNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _ctrl.removeListener(_onTableUpdate);
@@ -264,6 +301,107 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     }
   }
 
+  void _handleAnimatedDraw() {
+    if (_isFlightAnimating || !_ctrl.isPlaying || !_ctrl.isHumanTurn || _ctrl.hasDrawnThisTurn) {
+      return;
+    }
+
+    final deckBox = _drawDeckKey.currentContext?.findRenderObject() as RenderBox?;
+    final rackBox = _rackKey.currentContext?.findRenderObject() as RenderBox?;
+    final tableBox = context.findRenderObject() as RenderBox?;
+
+    if (deckBox == null || rackBox == null || tableBox == null) {
+      _ctrl.humanDrawCard(fromDiscard: false);
+      _syncLocalRowsFromController();
+      return;
+    }
+
+    final deckPos = tableBox.globalToLocal(deckBox.localToGlobal(Offset.zero));
+    final rackPos = tableBox.globalToLocal(rackBox.localToGlobal(Offset.zero));
+
+    final targetPos = Offset(
+      rackPos.dx + (rackBox.size.width / 2) - 26,
+      rackPos.dy + (rackBox.size.height * 0.68),
+    );
+
+    setState(() {
+      _isFlightAnimating = true;
+      _flyingCard = _FlyingCardInfo(
+        card: null,
+        startPos: deckPos,
+        endPos: targetPos,
+        startScale: 1.0,
+        endScale: 1.0,
+      );
+    });
+
+    SoundFx.playCardDraw();
+    _flightAnimController.forward(from: 0.0).then((_) {
+      if (!mounted) return;
+      _ctrl.humanDrawCard(fromDiscard: false);
+      _syncLocalRowsFromController();
+      setState(() {
+        _flyingCard = null;
+        _isFlightAnimating = false;
+      });
+    });
+  }
+
+  void _handleAnimatedDiscard() {
+    if (_isFlightAnimating || !_ctrl.isPlaying || !_ctrl.isHumanTurn || !_ctrl.hasDrawnThisTurn) {
+      return;
+    }
+    final cardId = _ctrl.selectedCardId;
+    if (cardId == null) return;
+
+    if (_ctrl.players.isEmpty || _ctrl.players[0].hand.isEmpty) return;
+    CardModel? card;
+    for (final c in _ctrl.players[0].hand) {
+      if (c.id == cardId) {
+        card = c;
+        break;
+      }
+    }
+    if (card == null) return;
+
+    final cardBox = _cardKeys[cardId]?.currentContext?.findRenderObject() as RenderBox?;
+    final discardBox = _discardPileKey.currentContext?.findRenderObject() as RenderBox?;
+    final tableBox = context.findRenderObject() as RenderBox?;
+
+    if (cardBox == null || discardBox == null || tableBox == null) {
+      _ctrl.humanDiscardCard(cardId);
+      _syncLocalRowsFromController();
+      return;
+    }
+
+    final startPos = tableBox.globalToLocal(cardBox.localToGlobal(Offset.zero));
+    final endPos = tableBox.globalToLocal(discardBox.localToGlobal(Offset.zero));
+
+    setState(() {
+      _isFlightAnimating = true;
+      _hiddenDiscardingCardId = cardId;
+      _flyingCard = _FlyingCardInfo(
+        card: card,
+        startPos: startPos,
+        endPos: endPos,
+        startScale: 1.05,
+        endScale: 1.0,
+      );
+    });
+
+    SoundFx.playCardDiscard();
+    _flightAnimController.forward(from: 0.0).then((_) {
+      if (!mounted) return;
+      _ctrl.humanDiscardCard(cardId);
+      _syncLocalRowsFromController();
+      setState(() {
+        _flyingCard = null;
+        _hiddenDiscardingCardId = null;
+        _isFlightAnimating = false;
+      });
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     final seats = _ctrl.players;
@@ -338,6 +476,48 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
             // 4. OYUN BİTTİ DÖNGÜSÜ GÜVENLİK MODALI
             if (_ctrl.status == 'game_over' && !_showingSummaryDialog)
               _buildGameOverOverlay(),
+
+            // 5. UÇAN KART HAREKET ANİMASYONU KATMANI (Havada süzülme)
+            if (_flyingCard != null)
+              AnimatedBuilder(
+                animation: _flightCurve,
+                builder: (context, _) {
+                  final t = _flightCurve.value;
+                  final currentPos = Offset.lerp(_flyingCard!.startPos, _flyingCard!.endPos, t)!;
+                  final currentScale = _flyingCard!.startScale + (_flyingCard!.endScale - _flyingCard!.startScale) * t;
+
+                  return Positioned(
+                    left: currentPos.dx,
+                    top: currentPos.dy,
+                    child: IgnorePointer(
+                      child: Transform.scale(
+                        scale: currentScale,
+                        child: Container(
+                          decoration: BoxDecoration(
+                            borderRadius: BorderRadius.circular(9),
+                            boxShadow: const [
+                              BoxShadow(
+                                color: Colors.black54,
+                                blurRadius: 16,
+                                offset: Offset(0, 8),
+                              ),
+                            ],
+                          ),
+                          child: _flyingCard!.card == null
+                              ? const CardBackWidget(width: 52, height: 74)
+                              : PlayingCardWidget(
+                                  card: _flyingCard!.card!,
+                                  wildRank: _ctrl.wildRank,
+                                  showWildHints: _ctrl.isAssisted,
+                                  width: 52,
+                                  height: 74,
+                                ),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -887,9 +1067,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
 
           // 2. 3D KAPALI DESTE (72px sabit genişlik)
           SizedBox(
+            key: _drawDeckKey,
             width: 72,
             child: GestureDetector(
-              onTap: canDrawNow ? () => _ctrl.humanDrawCard(fromDiscard: false) : null,
+              onTap: canDrawNow ? _handleAnimatedDraw : null,
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
@@ -937,6 +1118,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
 
           // 3. ATILAN KAĞIT (72px sabit genişlik)
           SizedBox(
+            key: _discardPileKey,
             width: 72,
             child: GestureDetector(
               onTap: () => _showDiscardHistorySheet(),
@@ -1090,7 +1272,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   isGold: true,
                   enabled: isPlaying && isMyTurn && !hasDrawn,
                   glow: isPlaying && isMyTurn && !hasDrawn,
-                  onTap: () => _ctrl.humanDrawCard(fromDiscard: false),
+                  onTap: _handleAnimatedDraw,
                 ),
               ),
               const SizedBox(width: 6),
@@ -1126,12 +1308,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                       isMyTurn &&
                       hasDrawn &&
                       _ctrl.selectedCardId != null,
-                  onTap: () {
-                    if (_ctrl.selectedCardId != null) {
-                      _ctrl.humanDiscardCard(_ctrl.selectedCardId!);
-                      _syncLocalRowsFromController();
-                    }
-                  },
+                  onTap: _handleAnimatedDiscard,
                 ),
               ),
               const SizedBox(width: 6),
@@ -1331,6 +1508,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
             }
           },
           child: SizedBox(
+            key: _rackKey,
             width: maxW,
             height: maxH,
             child: Stack(
@@ -1449,6 +1627,20 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
       final double left = cardLefts[idx];
       final double top = baseTop - (isSelected ? 6.0 : 0.0);
 
+      if (_hiddenDiscardingCardId == cardId) {
+        // Kart masaya uçarken ıstakada boş yerini koru, çift çizme
+        widgets.add(
+          Positioned(
+            left: left,
+            top: top,
+            child: SizedBox(width: cardW, height: cardH),
+          ),
+        );
+        continue;
+      }
+
+      final cardKey = _cardKeys.putIfAbsent(cardId, () => GlobalKey());
+
       widgets.add(
         AnimatedPositioned(
           key: ValueKey(cardId),
@@ -1457,6 +1649,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
           left: left,
           top: top,
           child: RepaintBoundary(
+            key: cardKey,
             child: GestureDetector(
               onTap: () {
                 SoundFx.playCardTap();

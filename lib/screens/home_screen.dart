@@ -148,183 +148,199 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         child: SafeArea(
-          child: Column(
-            children: [
-              // 1. ÜST BAR: Profil ve Ayarlar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-                child: Row(
-                  children: [
-                    // Profil Avatarı & İsim
-                    InkWell(
-                      onTap: () => showDialog(
-                        context: context,
-                        builder: (_) => const SettingsDialog(),
-                      ),
-                      borderRadius: BorderRadius.circular(30),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 44,
-                            height: 44,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final h = constraints.maxHeight;
+              final logoSize = (h * 0.17).clamp(84.0, 140.0);
+              final isSmall = h < 620;
+
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(minHeight: h),
+                  child: IntrinsicHeight(
+                    child: Column(
+                      children: [
+                        // 1. ÜST BAR: Profil ve Ayarlar
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          child: Row(
+                            children: [
+                              // Profil Avatarı & İsim
+                              InkWell(
+                                onTap: () => showDialog(
+                                  context: context,
+                                  builder: (_) => const SettingsDialog(),
+                                ),
+                                borderRadius: BorderRadius.circular(30),
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color: const Color(0xFF0B2217),
+                                        border: Border.all(
+                                          color: const Color(0xFFD4AF37),
+                                          width: 1.8,
+                                        ),
+                                        boxShadow: const [
+                                          BoxShadow(
+                                            color: Colors.black45,
+                                            blurRadius: 4,
+                                            offset: Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          avatar.emoji,
+                                          style: const TextStyle(fontSize: 22),
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 10),
+                                    Text(
+                                      settings.playerName,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+
+                              const Spacer(),
+
+                              // Kurallar Butonu (En az 48x48 dp dokunma alanı)
+                              IconButton(
+                                tooltip: 'Kurallar',
+                                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (_) => const RulesDialog(),
+                                ),
+                                icon: const Icon(
+                                  Icons.menu_book_rounded,
+                                  color: Color(0xFFFDE047),
+                                  size: 23,
+                                ),
+                              ),
+
+                              // Ayarlar Butonu (En az 48x48 dp dokunma alanı)
+                              IconButton(
+                                tooltip: 'Ayarlar',
+                                constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                                onPressed: () => showDialog(
+                                  context: context,
+                                  builder: (_) => const SettingsDialog(),
+                                ),
+                                icon: const Icon(
+                                  Icons.settings,
+                                  color: Colors.white70,
+                                  size: 23,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const Spacer(flex: 2),
+
+                        // 2. MERKEZ LOGO VE BAŞLIK
+                        Center(
+                          child: GameLogoWidget(size: logoSize),
+                        ),
+                        SizedBox(height: isSmall ? 10 : 16),
+                        Text(
+                          'YANIK İSKAMBİL',
+                          style: TextStyle(
+                            color: const Color(0xFFFDE047),
+                            fontWeight: FontWeight.w900,
+                            fontSize: isSmall ? 24 : 28,
+                            letterSpacing: 2.2,
+                            shadows: const [
+                              Shadow(
+                                color: Colors.black87,
+                                blurRadius: 8,
+                                offset: Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                        ),
+                        SizedBox(height: isSmall ? 8 : 14),
+
+                        // Aktif Tercih Edilen Mod Rozeti (Yardımlı / Yardımsız)
+                        InkWell(
+                          onTap: () => showDialog(
+                            context: context,
+                            builder: (_) => const SettingsDialog(),
+                          ),
+                          borderRadius: BorderRadius.circular(16),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                             decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: const Color(0xFF0B2217),
+                              color: const Color(0xFF081F15),
+                              borderRadius: BorderRadius.circular(16),
                               border: Border.all(
-                                color: const Color(0xFFD4AF37),
-                                width: 1.8,
+                                color: const Color(0xFFD4AF37).withValues(alpha: 0.8),
+                                width: 1.2,
                               ),
                               boxShadow: const [
                                 BoxShadow(
-                                  color: Colors.black45,
-                                  blurRadius: 4,
+                                  color: Colors.black38,
+                                  blurRadius: 6,
                                   offset: Offset(0, 2),
                                 ),
                               ],
                             ),
-                            child: Center(
-                              child: Text(
-                                avatar.emoji,
-                                style: const TextStyle(fontSize: 22),
-                              ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  settings.isAssisted ? '✨' : '🔥',
+                                  style: const TextStyle(fontSize: 13),
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  settings.isAssisted ? 'Yardımlı Mod' : 'Yardımsız Mod',
+                                  style: const TextStyle(
+                                    color: Color(0xFFFDE047),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 12.5,
+                                  ),
+                                ),
+                                const SizedBox(width: 6),
+                                const Icon(
+                                  Icons.tune_rounded,
+                                  color: Color(0xFFFDE047),
+                                  size: 14,
+                                ),
+                              ],
                             ),
                           ),
-                          const SizedBox(width: 10),
-                          Text(
-                            settings.playerName,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w900,
-                              fontSize: 16,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const Spacer(),
-
-                    // Kurallar Butonu (En az 48x48 dp dokunma alanı)
-                    IconButton(
-                      tooltip: 'Kurallar',
-                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => const RulesDialog(),
-                      ),
-                      icon: const Icon(
-                        Icons.menu_book_rounded,
-                        color: Color(0xFFFDE047),
-                        size: 23,
-                      ),
-                    ),
-
-                    // Ayarlar Butonu (En az 48x48 dp dokunma alanı)
-                    IconButton(
-                      tooltip: 'Ayarlar',
-                      constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                      onPressed: () => showDialog(
-                        context: context,
-                        builder: (_) => const SettingsDialog(),
-                      ),
-                      icon: const Icon(
-                        Icons.settings,
-                        color: Colors.white70,
-                        size: 23,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Spacer(flex: 2),
-
-              // 2. MERKEZ LOGO VE BAŞLIK
-              const Center(
-                child: GameLogoWidget(size: 110),
-              ),
-              const SizedBox(height: 18),
-              const Text(
-                'YANIK İSKAMBİL',
-                style: TextStyle(
-                  color: Color(0xFFFDE047),
-                  fontWeight: FontWeight.w900,
-                  fontSize: 28,
-                  letterSpacing: 2.2,
-                  shadows: [
-                    Shadow(
-                      color: Colors.black87,
-                      blurRadius: 8,
-                      offset: Offset(0, 3),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-
-              // Aktif Tercih Edilen Mod Rozeti (Yardımlı / Yardımsız)
-              InkWell(
-                onTap: () => showDialog(
-                  context: context,
-                  builder: (_) => const SettingsDialog(),
-                ),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF081F15),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: const Color(0xFFD4AF37).withValues(alpha: 0.8),
-                      width: 1.2,
-                    ),
-                    boxShadow: const [
-                      BoxShadow(
-                        color: Colors.black38,
-                        blurRadius: 6,
-                        offset: Offset(0, 2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        settings.isAssisted ? '✨' : '🔥',
-                        style: const TextStyle(fontSize: 13),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        settings.isAssisted ? 'Yardımlı Mod' : 'Yardımsız Mod',
-                        style: const TextStyle(
-                          color: Color(0xFFFDE047),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 12.5,
                         ),
-                      ),
-                      const SizedBox(width: 6),
-                      const Icon(
-                        Icons.tune_rounded,
-                        color: Color(0xFFFDE047),
-                        size: 14,
-                      ),
-                    ],
+
+                        const Spacer(flex: 3),
+
+                        // 3. GÜÇLÜ VE KOLAY FARK EDİLEN OYNA BUTONU
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 28),
+                          child: _buildPlayButton(
+                            onTap: _handlePlayButton,
+                          ),
+                        ),
+
+                        const Spacer(flex: 2),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-
-              const Spacer(flex: 3),
-
-              // 3. GÜÇLÜ VE KOLAY FARK EDİLEN OYNA BUTONU
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: _buildPlayButton(
-                  onTap: _handlePlayButton,
-                ),
-              ),
-
-              const Spacer(flex: 2),
-            ],
+              );
+            },
           ),
         ),
       ),

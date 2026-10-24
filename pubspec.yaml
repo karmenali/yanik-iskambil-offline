@@ -27,3 +27,8 @@ flutter:
     - assets/images/table_bg.jpg
     - assets/images/game_logo.jpg
     - assets/images/joker_art.jpg
+    - assets/sounds/card_draw.wav
+    - assets/sounds/card_discard.wav
+    - assets/sounds/card_slide.wav
+    - assets/sounds/card_tap.wav
+    - assets/sounds/celebration.wav

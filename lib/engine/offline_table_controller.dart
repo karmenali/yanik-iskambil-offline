@@ -259,25 +259,26 @@ class OfflineTableController extends ChangeNotifier {
   }
 
   void _distributeHumanCardsToRows(List<CardModel> hand) {
-    // Otomatik optimal dizilimi uygula
-    final eval = GameEngine.evaluateHandOptimal(hand, wildRank);
-    humanRows = [[], [], []];
+    if (hand.isEmpty) {
+      humanRows = [[], [], []];
+      return;
+    }
+    // 1. HandSorter kurallarına göre deterministik sırala
+    final sorted = HandSorter.sortHand(hand);
+    players[0].hand = List<CardModel>.from(sorted);
 
-    int rowIndex = 0;
-    for (final meld in eval.melds) {
-      if (rowIndex < 3) {
-        humanRows[rowIndex].addAll(meld);
-        rowIndex++;
-      } else {
-        humanRows[2].addAll(meld);
-      }
-    }
-    // Kalanları sırayla dağıt
-    int r = 0;
-    for (final c in eval.unmelded) {
-      humanRows[r % 3].add(c);
-      r++;
-    }
+    // 2. 3 ıstaka sırasına dengeli dağıt (Örn: 10 kart için 4, 3, 3; 11 kart için 4, 4, 3)
+    final n = sorted.length;
+    final count0 = (n / 3.0).ceil();
+    final rem = n - count0;
+    final count1 = (rem / 2.0).ceil();
+    final count2 = n - count0 - count1;
+
+    humanRows = [
+      sorted.sublist(0, count0),
+      sorted.sublist(count0, count0 + count1),
+      sorted.sublist(count0 + count1, count0 + count1 + count2),
+    ];
   }
 
   void selectCard(String cardId) {
@@ -302,8 +303,16 @@ class OfflineTableController extends ChangeNotifier {
     final drawnCard = drawPile.removeAt(0);
 
     players[0].hand.add(drawnCard);
-    // 3. sıranın sonuna ekle
-    humanRows[2].add(drawnCard);
+    // Çekilen kartı en az kartı olan sıraya ekle (dengeli tutar)
+    int targetRow = 2;
+    int minCards = humanRows[2].length;
+    for (int r = 1; r >= 0; r--) {
+      if (humanRows[r].length < minCards) {
+        minCards = humanRows[r].length;
+        targetRow = r;
+      }
+    }
+    humanRows[targetRow].add(drawnCard);
     hasDrawnThisTurn = true;
     selectedCardId = drawnCard.id;
     SoundFx.playCardDraw();
@@ -453,10 +462,17 @@ class OfflineTableController extends ChangeNotifier {
         humanRows[2].addAll(meld);
       }
     }
-    int r = 0;
+    // Per dışındaki kartları en az kartı olan sıraya dengeli ekle
     for (final c in eval.unmelded) {
-      humanRows[r % 3].add(c);
-      r++;
+      int targetRow = 0;
+      int minCount = humanRows[0].length;
+      for (int r = 1; r < 3; r++) {
+        if (humanRows[r].length < minCount) {
+          minCount = humanRows[r].length;
+          targetRow = r;
+        }
+      }
+      humanRows[targetRow].add(c);
     }
     SoundFx.playCardTap();
     notifyListeners();
@@ -468,13 +484,18 @@ class OfflineTableController extends ChangeNotifier {
     final sorted = HandSorter.sortHand(players[0].hand);
     players[0].hand = List<CardModel>.from(sorted);
 
-    // 3 ıstaka sırasına dengeli ve okunabilir yerleştir (küçük ranklar üst sırada, büyükler ve jokerler alt sıralarda)
-    humanRows = [[], [], []];
-    final perRow = (sorted.length / 3.0).ceil();
-    for (int i = 0; i < sorted.length; i++) {
-      final r = (i / perRow).floor().clamp(0, 2);
-      humanRows[r].add(sorted[i]);
-    }
+    // 3 ıstaka sırasına dengeli ve okunabilir yerleştir (4, 3, 3 / 4, 4, 3 vb.)
+    final n = sorted.length;
+    final count0 = (n / 3.0).ceil();
+    final rem = n - count0;
+    final count1 = (rem / 2.0).ceil();
+    final count2 = n - count0 - count1;
+
+    humanRows = [
+      sorted.sublist(0, count0),
+      sorted.sublist(count0, count0 + count1),
+      sorted.sublist(count0 + count1, count0 + count1 + count2),
+    ];
     SoundFx.playCardTap();
     notifyListeners();
   }
