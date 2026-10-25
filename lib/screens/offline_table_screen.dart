@@ -1520,93 +1520,254 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   }
 
   /// Yardımsız modda hatalı el açma onayı diyaloğu ve bitiş tetiklemesi
-  void _onDeclareFinishPressed() {
-    if (_isConfirmingFinish) return;
+  Future<void> _onDeclareFinishPressed() async {
+    if (_isConfirmingFinish || !_ctrl.isHumanTurn || !_ctrl.hasDrawnThisTurn) return;
 
-    if (!_ctrl.isAssisted && _ctrl.willHumanFinishCausePenalty()) {
-      _isConfirmingFinish = true;
-      SoundFx.playCardTap();
-      showDialog<bool>(
-        context: context,
-        barrierDismissible: false,
-        builder: (dialogCtx) {
-          return AlertDialog(
-            backgroundColor: const Color(0xFF0F261C),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(18),
-              side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
-            ),
-            title: const Row(
-              children: [
-                Icon(Icons.warning_amber_rounded,
-                    color: Color(0xFFEF4444), size: 28),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Hatalı El Açma Uyarısı',
+    final candidates = _ctrl.getValidDiscardCandidates();
+
+    // 1. Durum: Elde hiçbir geçerli bitiş yok (Geçersiz el açma)
+    if (candidates.isEmpty) {
+      if (!_ctrl.isAssisted) {
+        _isConfirmingFinish = true;
+        SoundFx.playCardTap();
+        final confirmed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) {
+            return AlertDialog(
+              backgroundColor: const Color(0xFF0F261C),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+                side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+              ),
+              title: const Row(
+                children: [
+                  Icon(Icons.warning_amber_rounded,
+                      color: Color(0xFFEF4444), size: 28),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Hatalı El Açma Uyarısı',
+                      style: TextStyle(
+                        color: Color(0xFFFDE047),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              content: const Text(
+                'Geçersiz el açarsanız 101 ceza alacaksınız. Devam etmek istiyor musunuz?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  height: 1.4,
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogCtx).pop(false);
+                  },
+                  child: const Text(
+                    'Vazgeç',
                     style: TextStyle(
-                      color: Color(0xFFFDE047),
+                      color: Colors.white70,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFDC2626),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  ),
+                  onPressed: () {
+                    Navigator.of(dialogCtx).pop(true);
+                  },
+                  child: const Text(
+                    'Devam Et',
+                    style: TextStyle(
                       fontWeight: FontWeight.w900,
-                      fontSize: 16,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+        _isConfirmingFinish = false;
+        if (confirmed == true && mounted) {
+          _ctrl.humanDeclareFinish();
+        }
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Eliniz henüz bitişe hazır değil.'),
+            duration: Duration(seconds: 2),
+            backgroundColor: Color(0xFF1E3A2F),
+          ),
+        );
+      }
+      return;
+    }
+
+    // 2. Durum: Kullanıcı zaten geçerli adaylardan birini seçmişse doğrudan o kartla bitir
+    if (_ctrl.selectedCardId != null &&
+        candidates.any((c) => c.id == _ctrl.selectedCardId)) {
+      _ctrl.humanDeclareFinish(discardCardId: _ctrl.selectedCardId);
+      return;
+    }
+
+    // 3. Durum: Yalnızca 1 adet geçerli atılabilir kart varsa kullanıcıyı yormadan otomatik seçip bitir
+    if (candidates.length == 1) {
+      final singleCard = candidates.first;
+      _ctrl.selectedCardId = singleCard.id;
+      _ctrl.humanDeclareFinish(discardCardId: singleCard.id);
+      return;
+    }
+
+    // 4. Durum: Birden fazla geçerli kart atılabiliyorsa BottomSheet ile sor
+    _isConfirmingFinish = true;
+    final chosenCardId = await _showDiscardSelectionSheet(candidates);
+    _isConfirmingFinish = false;
+
+    if (chosenCardId != null && mounted) {
+      _ctrl.humanDeclareFinish(discardCardId: chosenCardId);
+    }
+  }
+
+  /// Birden fazla atılabilir kart adayı olduğunda gösterilen modern seçim BottomSheet'i
+  Future<String?> _showDiscardSelectionSheet(List<CardModel> candidates) async {
+    SoundFx.playCardTap();
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF0A2218),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        side: BorderSide(color: Color(0xFFD4AF37), width: 1.5),
+      ),
+      builder: (sheetCtx) {
+        return SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.white24,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.touch_app, color: Color(0xFFFDE047), size: 20),
+                    SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Atılacak Kartı Seçin',
+                        style: TextStyle(
+                          color: Color(0xFFFDE047),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 16,
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                const Text(
+                  'Elinizi açıp bitirmek için masaya atmak istediğiniz kartı seçin:',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                  ),
+                ),
+                const SizedBox(height: 18),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: candidates.map((card) {
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 6),
+                        child: InkWell(
+                          onTap: () {
+                            SoundFx.playCardTap();
+                            Navigator.of(sheetCtx).pop(card.id);
+                          },
+                          borderRadius: BorderRadius.circular(10),
+                          child: Container(
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(
+                                color: const Color(0xFFD4AF37),
+                                width: 2,
+                              ),
+                              boxShadow: const [
+                                BoxShadow(
+                                  color: Colors.black45,
+                                  blurRadius: 6,
+                                  offset: Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            child: PlayingCardWidget(
+                              card: card,
+                              wildRank: _ctrl.wildRank,
+                              showWildHints: _ctrl.isAssisted,
+                              width: 58,
+                              height: 84,
+                            ),
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  height: 44,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white70,
+                      side: const BorderSide(color: Colors.white30),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    onPressed: () => Navigator.of(sheetCtx).pop(null),
+                    child: const Text(
+                      'Vazgeç',
+                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
                 ),
               ],
             ),
-            content: const Text(
-              'Geçersiz el açarsanız 101 ceza alacaksınız. Devam etmek istiyor musunuz?',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 14,
-                height: 1.4,
-              ),
-            ),
-            actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-            actions: [
-              TextButton(
-                onPressed: () {
-                  Navigator.of(dialogCtx).pop(false);
-                },
-                child: const Text(
-                  'Vazgeç',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFDC2626),
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                ),
-                onPressed: () {
-                  Navigator.of(dialogCtx).pop(true);
-                },
-                child: const Text(
-                  'Devam Et',
-                  style: TextStyle(
-                    fontWeight: FontWeight.w900,
-                    fontSize: 14,
-                  ),
-                ),
-              ),
-            ],
-          );
-        },
-      ).then((confirmed) {
-        _isConfirmingFinish = false;
-        if (confirmed == true && mounted) {
-          _ctrl.humanDeclareFinish();
-        }
-      });
-    } else {
-      _ctrl.humanDeclareFinish();
-    }
+          ),
+        );
+      },
+    );
   }
 
   /// Satır içerisindeki per bitiş indekslerini tespit eder (Aynı satırdaki per grupları arasında ayrım için)

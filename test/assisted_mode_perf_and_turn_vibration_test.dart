@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:yanik_offline/engine/card_model.dart';
-import 'package:yanik_offline/engine/game_engine.dart';
 import 'package:yanik_offline/engine/offline_table_controller.dart';
 import 'package:yanik_offline/screens/offline_table_screen.dart';
 import 'package:yanik_offline/services/settings_service.dart';

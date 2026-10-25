@@ -388,7 +388,7 @@ class OfflineTableController extends ChangeNotifier {
     }
     humanRows[targetRow].add(drawnCard);
     hasDrawnThisTurn = true;
-    selectedCardId = drawnCard.id;
+    selectedCardId = null;
     _invalidateAssistedCache();
     notifyListeners();
   }
@@ -423,6 +423,78 @@ class OfflineTableController extends ChangeNotifier {
     }
   }
 
+  /// Oyuncunun elindeki 11 karttan hangilerinin atılması durumunda
+  /// elin geçerli bir şekilde açılabileceğini (bitirilebileceğini) tespit eder.
+  List<CardModel> getValidDiscardCandidates() {
+    if (!isHumanTurn || !hasDrawnThisTurn || players.isEmpty || players[0].hand.length != 11) {
+      return [];
+    }
+
+    final isAssisted = SettingsService.instance.isAssisted;
+    final hand11 = players[0].hand;
+    final validCandidates = <CardModel>[];
+
+    if (!isAssisted) {
+      // YARDIMSIZ MOD: Istaka satırlarındaki (humanRows) yerleşime göre kontrol.
+      // Bir kartın atılabilmesi için, o kart çıkarıldığında kalan 10 kartın
+      // her satırda geçerli perler oluşturması ve toplam kart sayısının 10 olması gerekir.
+      for (final cand in hand11) {
+        bool allRowsValid = true;
+        int meldedCount = 0;
+
+        for (int r = 0; r < 3; r++) {
+          final rowCards = humanRows[r].where((c) => c.id != cand.id).toList();
+          if (rowCards.isEmpty) continue;
+          meldedCount += rowCards.length;
+
+          final decomp = GameEngine.decomposeRowIntoMelds(rowCards, wildRank);
+          if (!decomp.valid) {
+            allRowsValid = false;
+            break;
+          }
+        }
+
+        if (allRowsValid && meldedCount == 10) {
+          validCandidates.add(cand);
+        }
+      }
+    } else {
+      // YARDIMLI MOD:
+      // Hem oyuncunun dizdiği satırlara bakar, hem de genel optimum kombinasyona bakar.
+      for (final cand in hand11) {
+        // Önce ıstaka satırları kontrolü
+        bool allRowsValid = true;
+        int meldedCount = 0;
+
+        for (int r = 0; r < 3; r++) {
+          final rowCards = humanRows[r].where((c) => c.id != cand.id).toList();
+          if (rowCards.isEmpty) continue;
+          meldedCount += rowCards.length;
+
+          final decomp = GameEngine.decomposeRowIntoMelds(rowCards, wildRank);
+          if (!decomp.valid) {
+            allRowsValid = false;
+            break;
+          }
+        }
+
+        if (allRowsValid && meldedCount == 10) {
+          validCandidates.add(cand);
+          continue;
+        }
+
+        // Genel optimum el değerlendirmesi
+        final remaining10 = hand11.where((c) => c.id != cand.id).toList();
+        final eval10 = GameEngine.evaluateHandOptimal(remaining10, wildRank);
+        if (eval10.canFinish) {
+          validCandidates.add(cand);
+        }
+      }
+    }
+
+    return validCandidates;
+  }
+
   /// Yardımsız modda el açma butonuna basıldığında hamlenin geçersiz olup olmayacağını
   /// (doğrudan 101 ceza alınıp alınmayacağını) kontrol eder.
   bool willHumanFinishCausePenalty() {
@@ -434,43 +506,58 @@ class OfflineTableController extends ChangeNotifier {
       return false; // Yardımlı modda sadece geçerli el açılabilir
     }
 
-    final candDiscardId = selectedCardId ?? players[0].hand.last.id;
-    final rowMelds = <List<CardModel>>[];
-    bool allRowsValid = true;
-    int meldedCount = 0;
-
-    for (int r = 0; r < 3; r++) {
-      final rowCards =
-          humanRows[r].where((c) => c.id != candDiscardId).toList();
-      if (rowCards.isEmpty) continue;
-      meldedCount += rowCards.length;
-
-      final decomp = GameEngine.decomposeRowIntoMelds(rowCards, wildRank);
-      if (!decomp.valid) {
-        allRowsValid = false;
-        break;
+    final validCandidates = getValidDiscardCandidates();
+    if (validCandidates.isNotEmpty) {
+      // Eğer kullanıcı açıkça bir kart seçmişse ve bu kart geçerli adaylardan biriyse ceza yok
+      if (selectedCardId != null && validCandidates.any((c) => c.id == selectedCardId)) {
+        return false;
       }
-      rowMelds.addAll(decomp.melds);
+      // Kart seçilmemişse sistem otomatik seçecek veya diyalogla seçtirecektir, ceza uyarısı tetiklenmez
+      if (selectedCardId == null) {
+        return false;
+      }
+      // Kullanıcı geçerli adaylar varken açıkça aday DIŞINDA bir kart seçmişse ceza oluşur
+      return true;
     }
 
-    final isValid = allRowsValid && meldedCount == 10;
-    return !isValid;
+    // Elde hiçbir geçerli bitiş adayı yoksa kesinlikle hatalı açmadır (101 ceza!)
+    return true;
   }
 
   /// İnsan oyuncu el açar / bitirir
-  void humanDeclareFinish() {
+  void humanDeclareFinish({String? discardCardId}) {
     if (!isHumanTurn || !hasDrawnThisTurn || players[0].hand.length != 11) return;
 
     final isAssisted = SettingsService.instance.isAssisted;
     final rowIds = humanRows.map((r) => r.map((c) => c.id).toList()).toList();
+    final validCandidates = getValidDiscardCandidates();
+
+    // Atılacak kartı belirle:
+    // 1. Parametre olarak iletilmişse
+    // 2. Seçili kart geçerli adaylardan biriyse
+    // 3. Tek geçerli aday varsa
+    // 4. Adaylar içinden ilki (güvenli fallback)
+    // 5. Hiç aday yoksa seçili kart veya son kart (hatalı açma akışı)
+    String chosenDiscardId;
+    if (discardCardId != null && players[0].hand.any((c) => c.id == discardCardId)) {
+      chosenDiscardId = discardCardId;
+    } else if (selectedCardId != null && validCandidates.any((c) => c.id == selectedCardId)) {
+      chosenDiscardId = selectedCardId!;
+    } else if (validCandidates.length == 1) {
+      chosenDiscardId = validCandidates.first.id;
+    } else if (validCandidates.isNotEmpty) {
+      chosenDiscardId = validCandidates.first.id;
+    } else {
+      chosenDiscardId = selectedCardId ?? players[0].hand.last.id;
+    }
 
     if (isAssisted) {
-      // Yardımlı Mod: Otomatik kontrol (önce ıstaka sıralarını, sonra genel kombinasyonu dener)
+      // Yardımlı Mod: Otomatik kontrol
       final winCheck = GameEngine.findWinningDiscard(
         players[0].hand,
         wildRank,
         handRows: rowIds,
-        preferredDiscardCardId: selectedCardId,
+        preferredDiscardCardId: chosenDiscardId,
       );
 
       if (winCheck.canWin && winCheck.discardCard != null) {
@@ -480,13 +567,18 @@ class OfflineTableController extends ChangeNotifier {
         _removeCardFromHumanRows(discardCard.id);
 
         players[0].openedMelds = winCheck.evaluation?.melds ?? [];
+        selectedCardId = null;
+        hasDrawnThisTurn = false;
+        _invalidateAssistedCache();
         endRound(0);
         return;
       }
     } else {
       // Yardımsız Mod: Istaka satırları geçerli per mi kontrol et
-      final candDiscardId = selectedCardId ?? players[0].hand.last.id;
-      final candDiscard = players[0].hand.firstWhere((c) => c.id == candDiscardId);
+      final candDiscard = players[0].hand.firstWhere(
+        (c) => c.id == chosenDiscardId,
+        orElse: () => players[0].hand.last,
+      );
 
       final rowMelds = <List<CardModel>>[];
       bool allRowsValid = true;
@@ -494,7 +586,7 @@ class OfflineTableController extends ChangeNotifier {
 
       for (int r = 0; r < 3; r++) {
         final rowCards =
-            humanRows[r].where((c) => c.id != candDiscardId).toList();
+            humanRows[r].where((c) => c.id != candDiscard.id).toList();
         if (rowCards.isEmpty) continue;
         meldedCount += rowCards.length;
 
@@ -508,14 +600,20 @@ class OfflineTableController extends ChangeNotifier {
 
       if (allRowsValid && meldedCount == 10) {
         // Geçerli bitiş
-        players[0].hand.removeWhere((c) => c.id == candDiscardId);
+        players[0].hand.removeWhere((c) => c.id == candDiscard.id);
         discardPile.add(candDiscard);
-        _removeCardFromHumanRows(candDiscardId);
+        _removeCardFromHumanRows(candDiscard.id);
         players[0].openedMelds = rowMelds;
+        selectedCardId = null;
+        hasDrawnThisTurn = false;
+        _invalidateAssistedCache();
         endRound(0);
         return;
       } else {
         // Hatalı el açma -> Yardımsız modda direkt 101 ceza ile yanar
+        selectedCardId = null;
+        hasDrawnThisTurn = false;
+        _invalidateAssistedCache();
         endRound(null, falseDeclarerSeat: 0);
         return;
       }
