@@ -462,28 +462,26 @@ class GameEngine {
     }
 
     // 2. Genel optimum kombinasyon taraması
-    CardModel? bestDiscard;
-    HandEvaluation? bestEval;
-    int bestDiscardScore = -1;
+    // Tercih edilen kartı (preferredDiscardCardId) ve en yüksek ceza puanlı kartları öncelikli tara
+    final candidateList = List<CardModel>.from(cards11);
+    candidateList.sort((a, b) {
+      if (preferredDiscardCardId != null) {
+        if (a.id == preferredDiscardCardId) return -1;
+        if (b.id == preferredDiscardCardId) return 1;
+      }
+      final aWild = isWildCard(a, wildRank);
+      final bWild = isWildCard(b, wildRank);
+      if (aWild && !bWild) return 1;
+      if (!aWild && bWild) return -1;
+      return getRawCardPenalty(b, wildRank).compareTo(getRawCardPenalty(a, wildRank));
+    });
 
-    for (int i = 0; i < cards11.length; i++) {
-      final cand = cards11[i];
-      final remaining10 = List<CardModel>.from(cards11)..removeAt(i);
+    for (final cand in candidateList) {
+      final remaining10 = cards11.where((c) => c.id != cand.id).toList();
       final eval10 = evaluateHandOptimal(remaining10, wildRank);
       if (eval10.canFinish) {
-        final score =
-            (preferredDiscardCardId != null && cand.id == preferredDiscardCardId ? 1000 : 0) +
-                (isWildCard(cand, wildRank) ? 0 : getRawCardPenalty(cand, wildRank));
-        if (score > bestDiscardScore) {
-          bestDiscardScore = score;
-          bestDiscard = cand;
-          bestEval = eval10;
-        }
+        return (canWin: true, discardCard: cand, evaluation: eval10);
       }
-    }
-
-    if (bestDiscard != null && bestEval != null) {
-      return (canWin: true, discardCard: bestDiscard, evaluation: bestEval);
     }
 
     return (canWin: false, discardCard: null, evaluation: null);

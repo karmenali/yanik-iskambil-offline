@@ -181,6 +181,32 @@ class SoundFx {
     } catch (_) {}
   }
 
+  @visibleForTesting
+  static Future<void> Function()? turnHapticFnForTesting;
+
+  /// Oyuncunun oynama sırası başladığında çalışan kısa, net sıra başlangıç titreşimi.
+  /// Yalnızca titreşim ayarı açıkken ve sıra ilk kez kullanıcıya geçtiğinde çalışır.
+  static void triggerTurnStartHaptic([Future<void> Function()? customHapticFn]) {
+    if (!SettingsService.instance.vibrationEnabled) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastHapticTime < 350) {
+      return; // Mükerrer çağrı engellemesi
+    }
+    _lastHapticTime = now;
+
+    try {
+      if (customHapticFn != null) {
+        customHapticFn();
+      } else if (turnHapticFnForTesting != null) {
+        turnHapticFnForTesting!();
+      } else if (!_isTest) {
+        // Android cihazlarda net ve hissedilir kısa dokunsal titreşim
+        HapticFeedback.mediumImpact();
+      }
+    } catch (_) {}
+  }
+
   /// Yalnızca gerçek kullanıcı etkileşimlerinde çalışan, donanımı kasmayan haptik titreşim.
   /// Bot hamlelerinde ASLA çağrılmaz. Titreşim ayarı kapalıysa platform kanalı çalıştırılmaz.
   static void triggerHaptic([Future<void> Function()? hapticFn]) {

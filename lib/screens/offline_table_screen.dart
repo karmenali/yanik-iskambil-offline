@@ -1,6 +1,5 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import '../engine/card_model.dart';
 import '../engine/game_engine.dart';
 import '../engine/offline_table_controller.dart';
@@ -420,7 +419,6 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     });
 
     SoundFx.playCardDraw();
-    SoundFx.triggerHaptic(HapticFeedback.lightImpact);
     _flightAnimController.forward(from: 0.0).then((_) {
       if (!mounted) return;
       _ctrl.humanDrawCard(fromDiscard: false);
@@ -475,7 +473,6 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     });
 
     SoundFx.playCardDiscard();
-    SoundFx.triggerHaptic(HapticFeedback.mediumImpact);
     _flightAnimController.forward(from: 0.0).then((_) {
       if (!mounted) return;
       _ctrl.humanDiscardCard(cardId);
@@ -1379,6 +1376,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     final isPlaying = _ctrl.isPlaying;
     final isMyTurn = _ctrl.isHumanTurn;
     final hasDrawn = _ctrl.hasDrawnThisTurn;
+    final winningDiscardId = isAssisted ? _ctrl.winningDiscardCardId : null;
 
     CardModel? selectedCard;
     if (_ctrl.selectedCardId != null && _ctrl.players.isNotEmpty) {
@@ -1445,6 +1443,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         Expanded(
           child: _buildThreeRowInteractiveRack(
             meldedIds: meldedIds,
+            winningDiscardId: winningDiscardId,
             isMyTurn: isMyTurn,
             hasDrawn: hasDrawn,
           ),
@@ -1626,6 +1625,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   /// 3 Sıralı Dikey Istaka ve Pan Hareketleri
   Widget _buildThreeRowInteractiveRack({
     required Set<String> meldedIds,
+    required String? winningDiscardId,
     required bool isMyTurn,
     required bool hasDrawn,
   }) {
@@ -1759,6 +1759,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                     cardW: cardW,
                     cardH: cardH,
                     meldedIds: meldedIds,
+                    winningDiscardId: winningDiscardId,
                     isMyTurn: isMyTurn,
                     hasDrawn: hasDrawn,
                     renderDraggingCard: false,
@@ -1789,6 +1790,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     required double cardW,
     required double cardH,
     required Set<String> meldedIds,
+    required String? winningDiscardId,
     required bool isMyTurn,
     required bool hasDrawn,
     bool renderDraggingCard = true,
@@ -1812,7 +1814,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
       final isSelected = _ctrl.selectedCardId == cardId;
       final isMelded = meldedIds.contains(cardId);
       final isWinningDiscard =
-          _ctrl.isAssisted && _ctrl.winningDiscardCardId == cardId;
+          winningDiscardId != null && winningDiscardId == cardId;
 
       final double left = cardLefts[idx];
       final double top = baseTop - (isSelected ? 6.0 : 0.0);
@@ -2024,7 +2026,6 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     _localRows[fromRow].removeAt(fromIdx);
     final clampedInsert = candidateIdx.clamp(0, _localRows[targetRow].length);
     _localRows[targetRow].insert(clampedInsert, movingCard);
-    SoundFx.triggerHaptic(HapticFeedback.selectionClick);
     return true;
   }
 

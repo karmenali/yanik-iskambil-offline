@@ -110,16 +110,86 @@ class OfflineTableController extends ChangeNotifier {
       players.isNotEmpty &&
       players.any((p) => p.hand.isNotEmpty);
 
-  Set<String> get meldedCardIds {
-    if (!isAssisted || players.isEmpty) return <String>{};
-    final eval = GameEngine.evaluateHandOptimal(players[0].hand, wildRank);
+  // --- Asist / Yardımcı Mod Hesaplama Önbelleği (O(1) Akıcılık) ---
+  String? _cachedEvalKey;
+  Set<String> _cachedMeldedCardIds = const {};
+  int _cachedPenalty = 0;
+
+  String? _cachedWinCheckKey;
+  ({bool canWin, CardModel? discardCard, HandEvaluation? evaluation})? _cachedWinCheck;
+
+  bool _hasVibratedForCurrentHumanTurn = false;
+
+  void _invalidateAssistedCache() {
+    _cachedEvalKey = null;
+    _cachedMeldedCardIds = const {};
+    _cachedPenalty = 0;
+    _cachedWinCheckKey = null;
+    _cachedWinCheck = null;
+  }
+
+  void _checkAndTriggerTurnStartHaptic() {
+    if (status == 'playing' && isHumanTurn) {
+      if (!_hasVibratedForCurrentHumanTurn) {
+        _hasVibratedForCurrentHumanTurn = true;
+        SoundFx.triggerTurnStartHaptic();
+      }
+    } else {
+      _hasVibratedForCurrentHumanTurn = false;
+    }
+  }
+
+  void _ensureHandEvaluated() {
+    if (players.isEmpty) {
+      _cachedMeldedCardIds = const {};
+      _cachedPenalty = 0;
+      return;
+    }
+    final hand = players[0].hand;
+    final currentKey = '$wildRank:${hand.length}:${hand.map((c) => c.id).join(',')}';
+    if (_cachedEvalKey == currentKey) {
+      return;
+    }
+
+    _cachedEvalKey = currentKey;
+    final eval = GameEngine.evaluateHandOptimal(hand, wildRank);
     final ids = <String>{};
     for (final m in eval.melds) {
       for (final c in m) {
         ids.add(c.id);
       }
     }
-    return ids;
+    _cachedMeldedCardIds = ids;
+    _cachedPenalty = eval.penalty;
+  }
+
+  void _ensureWinCheckEvaluated() {
+    if (!isAssisted || !isHumanTurn || players.isEmpty || players[0].hand.length != 11) {
+      _cachedWinCheckKey = null;
+      _cachedWinCheck = null;
+      return;
+    }
+    final hand = players[0].hand;
+    final rowStr = humanRows.map((r) => r.map((c) => c.id).join(',')).join(';');
+    final currentKey = '$wildRank:${hand.length}:${hand.map((c) => c.id).join(',')}:$rowStr:$selectedCardId';
+
+    if (_cachedWinCheckKey == currentKey && _cachedWinCheck != null) {
+      return;
+    }
+
+    _cachedWinCheckKey = currentKey;
+    _cachedWinCheck = GameEngine.findWinningDiscard(
+      hand,
+      wildRank,
+      handRows: humanRows.map((r) => r.map((c) => c.id).toList()).toList(),
+      preferredDiscardCardId: selectedCardId,
+    );
+  }
+
+  Set<String> get meldedCardIds {
+    if (!isAssisted || players.isEmpty) return const <String>{};
+    _ensureHandEvaluated();
+    return _cachedMeldedCardIds;
   }
 
   bool get canFinishNow {
@@ -127,12 +197,8 @@ class OfflineTableController extends ChangeNotifier {
       return false;
     }
     if (isAssisted) {
-      final winCheck = GameEngine.findWinningDiscard(
-        players[0].hand,
-        wildRank,
-        preferredDiscardCardId: selectedCardId,
-      );
-      return winCheck.canWin;
+      _ensureWinCheckEvaluated();
+      return _cachedWinCheck?.canWin ?? false;
     } else {
       return true;
     }
@@ -142,14 +208,16 @@ class OfflineTableController extends ChangeNotifier {
     if (!isAssisted || !isHumanTurn || players.isEmpty || players[0].hand.length != 11) {
       return null;
     }
-    final winCheck = GameEngine.findWinningDiscard(players[0].hand, wildRank);
-    return winCheck.canWin ? winCheck.discardCard?.id : null;
+    _ensureWinCheckEvaluated();
+    return (_cachedWinCheck != null && _cachedWinCheck!.canWin)
+        ? _cachedWinCheck!.discardCard?.id
+        : null;
   }
 
   int get currentHandPenalty {
     if (players.isEmpty) return 0;
-    final eval = GameEngine.evaluateHandOptimal(players[0].hand, wildRank);
-    return eval.penalty;
+    _ensureHandEvaluated();
+    return _cachedPenalty;
   }
 
   void syncHumanRows(List<List<CardModel>> rows) {
@@ -161,6 +229,7 @@ class OfflineTableController extends ChangeNotifier {
     if (players.isNotEmpty) {
       players[0].hand = all;
     }
+    _invalidateAssistedCache();
     notifyListeners();
   }
 
@@ -168,6 +237,8 @@ class OfflineTableController extends ChangeNotifier {
     _botTimer?.cancel();
     _botTimer = null;
     _isPaused = false;
+    _invalidateAssistedCache();
+    _hasVibratedForCurrentHumanTurn = false;
     final settings = SettingsService.instance;
 
     winnerMessage = null;
@@ -225,6 +296,8 @@ class OfflineTableController extends ChangeNotifier {
     lastFinisherSeat = null;
     lastFalseDeclarerSeat = null;
     selectedCardId = null;
+    _invalidateAssistedCache();
+    _hasVibratedForCurrentHumanTurn = false;
 
     // Yalnızca masada elenmemiş (aktif) oyunculara kart dağıt
     final activePlayerIds =
@@ -251,6 +324,7 @@ class OfflineTableController extends ChangeNotifier {
     currentTurnSeat = getNextActiveSeatIndex(dealerSeat);
     status = 'playing';
     SoundFx.playCardSlide();
+    _checkAndTriggerTurnStartHaptic();
     notifyListeners();
 
     if (!isHumanTurn) {
@@ -287,7 +361,6 @@ class OfflineTableController extends ChangeNotifier {
     } else {
       selectedCardId = cardId;
       SoundFx.playCardTap();
-      SoundFx.triggerHapticSelection();
     }
     notifyListeners();
   }
@@ -316,6 +389,7 @@ class OfflineTableController extends ChangeNotifier {
     humanRows[targetRow].add(drawnCard);
     hasDrawnThisTurn = true;
     selectedCardId = drawnCard.id;
+    _invalidateAssistedCache();
     notifyListeners();
   }
 
@@ -332,6 +406,7 @@ class OfflineTableController extends ChangeNotifier {
 
     selectedCardId = null;
     hasDrawnThisTurn = false;
+    _invalidateAssistedCache();
 
     // Deste tükendiyse ve kimse bitmediyse tur sona erer
     if (drawPile.isEmpty) {
@@ -474,6 +549,7 @@ class OfflineTableController extends ChangeNotifier {
       humanRows[targetRow].add(c);
     }
     SoundFx.playCardTap();
+    _invalidateAssistedCache();
     notifyListeners();
   }
 
@@ -496,6 +572,7 @@ class OfflineTableController extends ChangeNotifier {
       sorted.sublist(count0 + count1, count0 + count1 + count2),
     ];
     SoundFx.playCardTap();
+    _invalidateAssistedCache();
     notifyListeners();
   }
 
@@ -516,6 +593,7 @@ class OfflineTableController extends ChangeNotifier {
       final insertIdx = targetIndex.clamp(0, list.length);
       list.insert(insertIdx, card);
       SoundFx.playCardTap();
+      _invalidateAssistedCache();
       notifyListeners();
     }
   }
@@ -537,6 +615,7 @@ class OfflineTableController extends ChangeNotifier {
 
     currentTurnSeat = getNextActiveSeatIndex(currentTurnSeat);
     hasDrawnThisTurn = false;
+    _checkAndTriggerTurnStartHaptic();
     notifyListeners();
 
     if (!isHumanTurn) {
@@ -628,6 +707,7 @@ class OfflineTableController extends ChangeNotifier {
     _botTimer?.cancel();
     _botTimer = null;
     status = 'round_summary';
+    _hasVibratedForCurrentHumanTurn = false;
     lastFinisherSeat = finisherSeat;
     lastFalseDeclarerSeat = falseDeclarerSeat;
 
