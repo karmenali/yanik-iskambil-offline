@@ -45,11 +45,11 @@ class VectorCardPainter extends CustomPainter {
       ).createShader(Rect.fromLTWH(0, 0, w, h));
     canvas.drawRRect(rrect, cardBgPaint);
 
-    // Sahte Joker (Gösterge jokeri) yardımlı moddaysa hafif altın parıltı çerçevesi
+    // Sahte Joker (Gösterge jokeri) yardımlı moddaysa hafif asil altın parıltı dokusu
     final bool isIndicatorWild = showAsWild && !isPhysicalJoker;
     if (isIndicatorWild) {
       final wildGlowPaint = Paint()
-        ..color = const Color(0xFFF59E0B).withValues(alpha: 0.15)
+        ..color = const Color(0xFFF59E0B).withValues(alpha: 0.08)
         ..style = PaintingStyle.fill;
       canvas.drawRRect(rrect, wildGlowPaint);
     }

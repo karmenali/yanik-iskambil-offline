@@ -78,7 +78,7 @@ void main() {
       expect(find.byType(PlayingCardWidget), findsOneWidget);
     });
 
-    testWidgets('Fake Joker (indicator wild) displays wild hint badge in assisted mode', (tester) async {
+    testWidgets('Fake Joker (indicator wild) displays compact JOKER micro-badge in assisted mode', (tester) async {
       // 7 of Diamonds when wildRank is 7
       final fakeJoker = _card('D7', 'D', 7);
       await tester.pumpWidget(
@@ -95,8 +95,31 @@ void main() {
         ),
       );
 
-      // In assisted mode, the wild hint badge is visible
-      expect(find.text('★ JOKER'), findsOneWidget);
+      // In assisted mode, the sleek micro JOKER badge is visible in top right
+      expect(find.text('JOKER'), findsOneWidget);
+    });
+
+    testWidgets('Indicator reference card on table (isIndicator: true) NEVER displays JOKER badge', (tester) async {
+      // Gösterge referans kartı (masadaki gösterge) rank == wildRank olsa bile temiz kalır
+      final indicatorCard = _card('D7', 'D', 7);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: PlayingCardWidget(
+              card: indicatorCard,
+              wildRank: 7,
+              showWildHints: true,
+              isIndicator: true,
+              width: 52,
+              height: 74,
+            ),
+          ),
+        ),
+      );
+
+      // Gösterge referans kartında JOKER etiketi ASLA yer almaz; kartın kendi yüzü 100% temiz kalır
+      expect(find.text('JOKER'), findsNothing);
+      expect(find.text('★ JOKER'), findsNothing);
     });
 
     testWidgets('Fake Joker appears natural (no hint badge) in unassisted mode', (tester) async {
@@ -117,6 +140,7 @@ void main() {
       );
 
       // In unassisted mode, no wild badge should be shown!
+      expect(find.text('JOKER'), findsNothing);
       expect(find.text('★ JOKER'), findsNothing);
     });
 

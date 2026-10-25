@@ -1020,8 +1020,8 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     final canDrawNow = _ctrl.isHumanTurn && !_ctrl.hasDrawnThisTurn;
 
     return Container(
-      width: 260,
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+      width: 268,
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.black.withValues(alpha: 0.22),
         borderRadius: BorderRadius.circular(16),
@@ -1030,9 +1030,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          // 1. GÖSTERGE JOKERİ (72px sabit genişlik)
+          // 1. GÖSTERGE REFERANS KARTI (76px genişlik, FittedBox ile asla taşmaz)
           SizedBox(
-            width: 72,
+            width: 76,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -1040,35 +1040,41 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   PlayingCardWidget(
                     card: indicator,
                     wildRank: _ctrl.wildRank,
-                    showWildHints: true,
+                    showWildHints: false,
+                    isIndicator: true,
                     width: 52,
                     height: 74,
                   )
                 else
                   const SizedBox(width: 52, height: 74),
                 const SizedBox(height: 3),
-                Text(
-                  indicator != null
-                      ? 'GÖSTERGE ${indicator.rankLabel}${indicator.suitSymbol}'
-                      : 'GÖSTERGE',
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Color(0xFFFDE047),
-                    fontWeight: FontWeight.w900,
-                    fontSize: 9.5,
-                    shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                const SizedBox(
+                  height: 16,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.center,
+                    child: Text(
+                      'GÖSTERGE',
+                      maxLines: 1,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Color(0xFFFDE047),
+                        fontWeight: FontWeight.w900,
+                        fontSize: 10,
+                        letterSpacing: 0.5,
+                        shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                      ),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
 
-          // 2. 3D KAPALI DESTE (72px sabit genişlik)
+          // 2. 3D KAPALI DESTE (76px genişlik, FittedBox ile asla taşmaz)
           SizedBox(
             key: _drawDeckKey,
-            width: 72,
+            width: 76,
             child: GestureDetector(
               onTap: canDrawNow ? _handleAnimatedDraw : null,
               child: Column(
@@ -1095,20 +1101,26 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                     ),
                   ),
                   const SizedBox(height: 3),
-                  Text(
-                    canDrawNow ? '👇 ÇEK ($drawCount)' : 'DESTE $drawCount',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      color: canDrawNow
-                          ? const Color(0xFF4ADE80)
-                          : const Color(0xFFFDE047),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 9.5,
-                      shadows: const [
-                        Shadow(color: Colors.black, blurRadius: 4),
-                      ],
+                  SizedBox(
+                    height: 16,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.center,
+                      child: Text(
+                        canDrawNow ? '👇 ÇEK ($drawCount)' : 'DESTE $drawCount',
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: canDrawNow
+                              ? const Color(0xFF4ADE80)
+                              : const Color(0xFFFDE047),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          shadows: const [
+                            Shadow(color: Colors.black, blurRadius: 4),
+                          ],
+                        ),
+                      ),
                     ),
                   ),
                 ],
@@ -1116,10 +1128,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
             ),
           ),
 
-          // 3. ATILAN KAĞIT (72px sabit genişlik)
+          // 3. ATILAN KAĞIT (76px genişlik, FittedBox ile asla taşmaz)
           SizedBox(
             key: _discardPileKey,
-            width: 72,
+            width: 76,
             child: GestureDetector(
               onTap: () => _showDiscardHistorySheet(),
               child: Column(
@@ -1155,18 +1167,23 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                           ),
                         ),
                   const SizedBox(height: 3),
-                  Text(
-                    discardTop != null
-                        ? 'ATILAN ${discardTop.rankLabel}${discardTop.suitSymbol}'
-                        : 'ATILAN',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFFFDE047),
-                      fontWeight: FontWeight.w900,
-                      fontSize: 9.5,
-                      shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                  const SizedBox(
+                    height: 16,
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.center,
+                      child: Text(
+                        'ATILAN KART',
+                        maxLines: 1,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Color(0xFFFDE047),
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 0.3,
+                          shadows: [Shadow(color: Colors.black, blurRadius: 4)],
+                        ),
+                      ),
                     ),
                   ),
                 ],

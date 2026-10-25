@@ -5,6 +5,7 @@ import 'package:yanik_offline/engine/card_model.dart';
 import 'package:yanik_offline/engine/offline_table_controller.dart';
 import 'package:yanik_offline/screens/offline_table_screen.dart';
 import 'package:yanik_offline/services/settings_service.dart';
+import 'package:yanik_offline/widgets/playing_card_widget.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -106,6 +107,46 @@ void main() {
       final lefts = OfflineTableScreen.calculateCardLefts(count, tightMaxW, cardW, gaps);
       expect(lefts.length, equals(8));
       expect(lefts.last + cardW, lessThanOrEqualTo(tightMaxW));
+    });
+  });
+
+  group('Indicator Area & Joker UI Tests', () {
+    testWidgets('GÖSTERGE text is fully rendered and table indicator card has NO JOKER badge',
+        (WidgetTester tester) async {
+      const size = Size(360, 640);
+      await tester.binding.setSurfaceSize(size);
+      addTearDown(() => tester.binding.setSurfaceSize(null));
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: size,
+              textScaler: TextScaler.linear(1.4), // Test with 1.4x large accessibility text
+            ),
+            child: const OfflineTableScreen(),
+          ),
+        ),
+      );
+
+      await tester.pump();
+      await tester.pump(const Duration(milliseconds: 100));
+
+      // 1. GÖSTERGE metni tamamen mevcuttur
+      expect(find.text('GÖSTERGE'), findsOneWidget);
+
+      // 2. Masadaki gösterge kartında JOKER etiketi bulunmaz (kartın yüzü temizdir)
+      final indicatorFinder = find.byWidgetPredicate(
+        (widget) => widget is PlayingCardWidget && widget.isIndicator == true,
+      );
+      expect(indicatorFinder, findsOneWidget);
+
+      final indicatorWidget = tester.widget<PlayingCardWidget>(indicatorFinder);
+      expect(indicatorWidget.showWildHints, isFalse);
+      expect(indicatorWidget.isIndicator, isTrue);
+
+      // 3. Hiçbir taşma hatası meydana gelmemiştir
+      expect(tester.takeException(), isNull);
     });
   });
 }

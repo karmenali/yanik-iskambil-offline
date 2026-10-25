@@ -7,6 +7,7 @@ class PlayingCardWidget extends StatelessWidget {
   final CardModel card;
   final int wildRank;
   final bool showWildHints; // Yardımsız modda false olur; gösterge jokerini normal kağıt gibi gösterir
+  final bool isIndicator; // Masadaki gösterge referans kartı için true verilir; asla joker etiketi almaz
   final bool isSelected;
   final bool isMelded;
   final bool isNewlyDrawn;
@@ -20,6 +21,7 @@ class PlayingCardWidget extends StatelessWidget {
     required this.card,
     required this.wildRank,
     this.showWildHints = true,
+    this.isIndicator = false,
     this.isSelected = false,
     this.isMelded = false,
     this.isNewlyDrawn = false,
@@ -32,10 +34,14 @@ class PlayingCardWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bool isPhysicalJoker = card.isPhysicalJoker;
+    // Gösterge referans kartı masada kendi orijinal yüzüyle temiz gösterilir;
     // Yardımsız modda (showWildHints == false) sadece gerçek fiziksel Joker kağıdı Joker görünümündedir;
     // Gösterge kağıdıyla aynı sayıdaki kağıtlar normal iskambil kağıdı olarak çizilir (kopya/ipucu verilmez!)
-    final bool isIndicatorWild =
-        showWildHints && !isPhysicalJoker && wildRank > 0 && card.rank == wildRank;
+    final bool isIndicatorWild = !isIndicator &&
+        showWildHints &&
+        !isPhysicalJoker &&
+        wildRank > 0 &&
+        card.rank == wildRank;
     final bool showAsWild = isPhysicalJoker || isIndicatorWild;
 
     String normalizedSuit = card.suit.toUpperCase();
@@ -110,56 +116,62 @@ class PlayingCardWidget extends StatelessWidget {
               ),
             ),
 
-          // 4. Yardımlı Modda Joker Yıldız İpucu (Sağ üst altın rozet / yıldız)
+          // 4. Yardımlı Modda Göstergeye Bağlı Joker Rozeti
+          // Yalnızca sağ üst köşede kompakt mikro-rozet olarak yer alır.
+          // Sol üst rank/suit indeksini, portre başını ve merkez çizimini ASLA örtmez.
           if (isIndicatorWild)
             Positioned(
-              top: 2.5,
-              right: 3.0,
+              top: 2.0,
+              right: 2.2,
               child: IgnorePointer(
-                child: width >= 50
+                child: width >= 46
                     ? Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 3.5, vertical: 1),
+                        padding: const EdgeInsets.symmetric(horizontal: 2.6, vertical: 0.6),
                         decoration: BoxDecoration(
                           gradient: const LinearGradient(
-                            colors: [Color(0xFFF59E0B), Color(0xFFD97706)],
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [Color(0xFFFFD54F), Color(0xFFF59E0B)],
                           ),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(2.5),
+                          border: Border.all(color: const Color(0xFFD97706), width: 0.4),
                           boxShadow: const [
                             BoxShadow(
                               color: Colors.black26,
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
+                              blurRadius: 1.5,
+                              offset: Offset(0, 0.5),
                             ),
                           ],
                         ),
                         child: Text(
-                          '★ JOKER',
+                          'JOKER',
                           style: TextStyle(
                             color: const Color(0xFF451A03),
-                            fontSize: (width * 0.11).clamp(6.5, 8.5),
+                            fontSize: (width * 0.088).clamp(5.0, 6.2),
                             fontWeight: FontWeight.w900,
-                            letterSpacing: 0.2,
+                            letterSpacing: 0.1,
+                            height: 1.0,
                           ),
                         ),
                       )
                     : Container(
-                        padding: const EdgeInsets.all(1.5),
+                        padding: const EdgeInsets.all(1.0),
                         decoration: const BoxDecoration(
                           color: Color(0xFFF59E0B),
                           shape: BoxShape.circle,
                           boxShadow: [
                             BoxShadow(
                               color: Colors.black26,
-                              blurRadius: 2,
-                              offset: Offset(0, 1),
+                              blurRadius: 1.0,
+                              offset: Offset(0, 0.5),
                             ),
                           ],
                         ),
-                        child: Text(
+                        child: const Text(
                           '★',
                           style: TextStyle(
-                            color: const Color(0xFF451A03),
-                            fontSize: (width * 0.14).clamp(7.0, 9.5),
+                            color: Color(0xFF451A03),
+                            fontSize: 5.0,
                             fontWeight: FontWeight.w900,
                             height: 1.0,
                           ),
