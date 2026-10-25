@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../engine/card_model.dart';
@@ -6,6 +7,7 @@ import '../engine/offline_table_controller.dart';
 import '../services/sound_fx.dart';
 import '../widgets/playing_card_widget.dart';
 import '../widgets/round_summary_dialog.dart';
+import '../widgets/victory_celebration_overlay.dart';
 import 'settings_dialog.dart';
 
 class _HitCardResult {
@@ -142,11 +144,20 @@ class _FlyingCardInfo {
 }
 
 class _OfflineTableScreenState extends State<OfflineTableScreen>
-    with WidgetsBindingObserver, SingleTickerProviderStateMixin {
+    with WidgetsBindingObserver, TickerProviderStateMixin {
   final _ctrl = OfflineTableController.instance;
   bool _showingSummaryDialog = false;
   bool _showScoreboardModal = false;
   bool _isConfirmingFinish = false;
+
+  // Zafer Kutlaması (Victory Celebration) Durumu
+  late AnimationController _celebrationAnimController;
+  bool _isCelebrationActive = false;
+  int? _celebrationWinnerSeat;
+  String _celebrationWinnerName = '';
+  bool _isCelebrationHumanWinner = false;
+  bool _isCelebrationGrandChampion = false;
+  int _lastCelebratedRound = -1;
 
   // Uçan Kart Hareketi (Havada süzülme animasyonu)
   late AnimationController _flightAnimController;
@@ -181,6 +192,17 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
       parent: _flightAnimController,
       curve: Curves.easeOutCubic,
     );
+
+    _celebrationAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2100),
+    );
+    _celebrationAnimController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        _finishCelebrationAndShowDialog();
+      }
+    });
+
     _syncLocalRowsFromController();
     _ctrl.addListener(_onTableUpdate);
   }
@@ -188,6 +210,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   @override
   void dispose() {
     _flightAnimController.dispose();
+    _celebrationAnimController.dispose();
     _dragPosNotifier.dispose();
     WidgetsBinding.instance.removeObserver(this);
     _ctrl.removeListener(_onTableUpdate);
@@ -224,42 +247,103 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
 
     setState(() {});
 
-    // Tur sonu özeti geldiyse ve henüz modal açılmadıysa ANINDA aç! (Süre yok)
-    if (_ctrl.status == 'round_summary' &&
-        _ctrl.lastShowdown != null &&
-        !_showingSummaryDialog) {
-      _showingSummaryDialog = true;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        showDialog(
-          context: context,
-          barrierDismissible: false,
-          builder: (ctx) => RoundSummaryDialog(
-            results: _ctrl.lastShowdown!,
-            roundNumber: _ctrl.roundNumber,
-            wildRank: _ctrl.wildRank,
-            winnerMessage: _ctrl.winnerMessage,
-            onContinue: () {
-              _showingSummaryDialog = false;
-              _ctrl.continueAfterRound();
-            },
-            onPlayAgain: () {
-              _showingSummaryDialog = false;
-              _ctrl.initMatch();
-              _syncLocalRowsFromController();
-              if (mounted) setState(() {});
-            },
-            onMainMenu: () {
-              _showingSummaryDialog = false;
-              _ctrl.stopGame();
-              if (mounted) Navigator.of(context).pop();
-            },
-          ),
-        ).then((_) {
-          _showingSummaryDialog = false;
-        });
-      });
+    // Tur sonu değerlendirmesi: Zafer kutlaması ve özet diyaloğu akışı
+    if (_ctrl.status == 'round_summary' && _ctrl.lastShowdown != null) {
+      if (_ctrl.lastFinisherSeat != null) {
+        // Bir oyuncu eli açıp bitirdi: Yeni bir tur ise kutlamayı TAM 1 KEZ tetikle
+        if (_lastCelebratedRound != _ctrl.roundNumber &&
+            !_isCelebrationActive &&
+            !_showingSummaryDialog) {
+          _lastCelebratedRound = _ctrl.roundNumber;
+          _startVictoryCelebration(_ctrl.lastFinisherSeat!);
+        }
+      } else {
+        // Deste tükendi / berabere (Kazanan yok): Doğrudan özet diyaloğunu aç
+        if (!_showingSummaryDialog && !_isCelebrationActive) {
+          _showSummaryDialog();
+        }
+      }
     }
+  }
+
+  void _startVictoryCelebration(int finisherSeat) {
+    if (!mounted) return;
+    final winner = _ctrl.players.isNotEmpty &&
+            finisherSeat >= 0 &&
+            finisherSeat < _ctrl.players.length
+        ? _ctrl.players[finisherSeat]
+        : null;
+    final isHuman = finisherSeat == 0;
+    final isGrandChampion =
+        _ctrl.winnerMessage != null && _ctrl.winnerMessage!.isNotEmpty;
+    final winnerName = winner != null
+        ? (isHuman ? 'Sen' : winner.username)
+        : 'Kazanan';
+
+    setState(() {
+      _isCelebrationActive = true;
+      _celebrationWinnerSeat = finisherSeat;
+      _celebrationWinnerName = winnerName;
+      _isCelebrationHumanWinner = isHuman;
+      _isCelebrationGrandChampion = isGrandChampion;
+    });
+
+    _celebrationAnimController.forward(from: 0.0);
+  }
+
+  void _finishCelebrationAndShowDialog() {
+    if (!mounted) return;
+    if (_showingSummaryDialog) return;
+
+    _celebrationAnimController.stop();
+    setState(() {
+      _isCelebrationActive = false;
+    });
+
+    _showSummaryDialog();
+  }
+
+  void _showSummaryDialog() {
+    if (_showingSummaryDialog || !mounted) return;
+    if (_ctrl.lastShowdown == null) return;
+
+    _showingSummaryDialog = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => RoundSummaryDialog(
+          results: _ctrl.lastShowdown!,
+          roundNumber: _ctrl.roundNumber,
+          wildRank: _ctrl.wildRank,
+          winnerMessage: _ctrl.winnerMessage,
+          onContinue: () {
+            _showingSummaryDialog = false;
+            _ctrl.continueAfterRound();
+          },
+          onPlayAgain: () {
+            _showingSummaryDialog = false;
+            _lastCelebratedRound = -1;
+            _isCelebrationActive = false;
+            _celebrationAnimController.reset();
+            _ctrl.initMatch();
+            _syncLocalRowsFromController();
+            if (mounted) setState(() {});
+          },
+          onMainMenu: () {
+            _showingSummaryDialog = false;
+            _lastCelebratedRound = -1;
+            _isCelebrationActive = false;
+            _celebrationAnimController.reset();
+            _ctrl.stopGame();
+            if (mounted) Navigator.of(context).pop();
+          },
+        ),
+      ).then((_) {
+        _showingSummaryDialog = false;
+      });
+    });
   }
 
   Future<void> _confirmAndLeaveTable() async {
@@ -519,6 +603,18 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                     ),
                   );
                 },
+              ),
+
+            // 6. PRESTİJLİ ZAFER KUTLAMASI (Victory Celebration Overlay)
+            if (_isCelebrationActive)
+              Positioned.fill(
+                child: VictoryCelebrationOverlay(
+                  animation: _celebrationAnimController,
+                  winnerName: _celebrationWinnerName,
+                  isHumanWinner: _isCelebrationHumanWinner,
+                  isGrandChampion: _isCelebrationGrandChampion,
+                  onTap: _finishCelebrationAndShowDialog,
+                ),
               ),
           ],
         ),
@@ -850,6 +946,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     final isMe = seatIndex == 0;
     final isCurrentTurn = _ctrl.status == 'playing' && _ctrl.currentTurnSeat == seatIndex;
     final isDealer = _ctrl.dealerSeat == seatIndex;
+    final isWinnerCelebrated = _isCelebrationActive && _celebrationWinnerSeat == seatIndex;
     final avatar = VipAvatar.fromKey(seat.avatar);
 
     return RepaintBoundary(
@@ -859,10 +956,41 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             Stack(
+              clipBehavior: Clip.none,
               alignment: Alignment.center,
               children: [
+                // Kazanan Kutlama Parıltı Halkası (Altın Corona Efekti)
+                if (isWinnerCelebrated)
+                  AnimatedBuilder(
+                    animation: _celebrationAnimController,
+                    builder: (context, _) {
+                      final pulse = (0.5 + 0.5 * math.sin(_celebrationAnimController.value * math.pi * 6)).abs();
+                      return Container(
+                        width: 58 + 4 * pulse,
+                        height: 58 + 4 * pulse,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFFFDE047),
+                            width: 3.5,
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFD97706).withValues(alpha: 0.8),
+                              blurRadius: 18 + 6 * pulse,
+                              spreadRadius: 3 + 2 * pulse,
+                            ),
+                            BoxShadow(
+                              color: const Color(0xFFFDE047).withValues(alpha: 0.6),
+                              blurRadius: 8,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  )
                 // Sabit %100 Dolu Neon Yeşil Halka (Dönmez, sabit ve temiz durur)
-                if (isCurrentTurn)
+                else if (isCurrentTurn)
                   Container(
                     width: 54,
                     height: 54,
@@ -895,8 +1023,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                     ],
                   ),
                   border: Border.all(
-                    color: isMe ? const Color(0xFFFACC15) : const Color(0xFFD4AF37),
-                    width: isMe ? 2.4 : 1.8,
+                    color: isWinnerCelebrated
+                        ? const Color(0xFFFDE047)
+                        : (isMe ? const Color(0xFFFACC15) : const Color(0xFFD4AF37)),
+                    width: isWinnerCelebrated ? 2.8 : (isMe ? 2.4 : 1.8),
                   ),
                 ),
                 child: Center(
@@ -906,6 +1036,45 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   ),
                 ),
               ),
+
+              // Kazanan Taç Rozeti ('👑 KAZANDI')
+              if (isWinnerCelebrated)
+                Positioned(
+                  top: -11,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFFFDE047), Color(0xFFD97706)],
+                      ),
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: const [
+                        BoxShadow(
+                          color: Colors.black54,
+                          blurRadius: 6,
+                          offset: Offset(0, 2),
+                        ),
+                      ],
+                      border: Border.all(color: Colors.white, width: 0.8),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text('👑', style: TextStyle(fontSize: 9.5)),
+                        SizedBox(width: 2),
+                        Text(
+                          'KAZANDI',
+                          style: TextStyle(
+                            color: Color(0xFF1E130C),
+                            fontWeight: FontWeight.w900,
+                            fontSize: 8,
+                            letterSpacing: 0.3,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
               // Dağıtan (Dealer 'D') Rozeti (Sol Alt)
               if (isDealer)
@@ -970,10 +1139,12 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               color: Colors.black.withValues(alpha: 0.82),
               borderRadius: BorderRadius.circular(9),
               border: Border.all(
-                color: isCurrentTurn
-                    ? const Color(0xFF22C55E)
-                    : const Color(0xFFD4AF37).withValues(alpha: 0.65),
-                width: 1.0,
+                color: isWinnerCelebrated
+                    ? const Color(0xFFFDE047)
+                    : isCurrentTurn
+                        ? const Color(0xFF22C55E)
+                        : const Color(0xFFD4AF37).withValues(alpha: 0.65),
+                width: isWinnerCelebrated ? 1.4 : 1.0,
               ),
             ),
             child: Column(

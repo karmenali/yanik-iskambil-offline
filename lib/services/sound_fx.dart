@@ -42,6 +42,7 @@ class SoundFx {
   static int _lastSlideTime = 0;
   static int _lastTapTime = 0;
   static int _lastHapticTime = 0;
+  static int _lastCelebrationTime = 0;
 
   // Kenney Casino Audio OGG & WAV Dosyaları
   static const String _assetCardDraw = 'sounds/card_draw.ogg';
@@ -160,10 +161,16 @@ class SoundFx {
     );
   }
 
-  /// Tur/Oyun kazanma kutlama sesi
+  /// Tur/Oyun kazanma kutlama sesi (Kısa, tok, asil casino akustiği)
   static void playCelebration() {
     if (_isTest) return;
     if (!SettingsService.instance.soundEnabled) return;
+
+    final now = DateTime.now().millisecondsSinceEpoch;
+    if (now - _lastCelebrationTime < 1000) {
+      return; // Tekrarlanan kutlama sesi engellendi
+    }
+    _lastCelebrationTime = now;
 
     try {
       _celebrationPlayer?.stop().then((_) {
