@@ -287,6 +287,7 @@ class OfflineTableController extends ChangeNotifier {
     } else {
       selectedCardId = cardId;
       SoundFx.playCardTap();
+      SoundFx.triggerHapticSelection();
     }
     notifyListeners();
   }
@@ -315,7 +316,6 @@ class OfflineTableController extends ChangeNotifier {
     humanRows[targetRow].add(drawnCard);
     hasDrawnThisTurn = true;
     selectedCardId = drawnCard.id;
-    SoundFx.playCardDraw();
     notifyListeners();
   }
 
@@ -332,7 +332,6 @@ class OfflineTableController extends ChangeNotifier {
 
     selectedCardId = null;
     hasDrawnThisTurn = false;
-    SoundFx.playCardDiscard();
 
     // Deste tükendiyse ve kimse bitmediyse tur sona erer
     if (drawPile.isEmpty) {
@@ -696,6 +695,7 @@ class OfflineTableController extends ChangeNotifier {
 
     if (finisherSeat == 0) {
       SoundFx.playCelebration();
+      SoundFx.triggerHapticHeavy();
     } else {
       SoundFx.playCardDiscard();
     }

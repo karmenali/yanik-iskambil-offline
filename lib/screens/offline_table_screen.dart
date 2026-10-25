@@ -336,6 +336,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     });
 
     SoundFx.playCardDraw();
+    SoundFx.triggerHaptic(HapticFeedback.lightImpact);
     _flightAnimController.forward(from: 0.0).then((_) {
       if (!mounted) return;
       _ctrl.humanDrawCard(fromDiscard: false);
@@ -390,6 +391,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     });
 
     SoundFx.playCardDiscard();
+    SoundFx.triggerHaptic(HapticFeedback.mediumImpact);
     _flightAnimController.forward(from: 0.0).then((_) {
       if (!mounted) return;
       _ctrl.humanDiscardCard(cardId);
@@ -1669,7 +1671,6 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
             key: cardKey,
             child: GestureDetector(
               onTap: () {
-                SoundFx.playCardTap();
                 _ctrl.selectCard(cardId);
               },
               child: AnimatedScale(
