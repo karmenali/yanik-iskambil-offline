@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "com.yanikiskambil.offline" "\0"
-            VALUE "FileDescription", "yanik_offline" "\0"
+            VALUE "FileDescription", "Yanik Iskambil" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "yanik_offline" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 com.yanikiskambil.offline. All rights reserved." "\0"
             VALUE "OriginalFilename", "yanik_offline.exe" "\0"
-            VALUE "ProductName", "yanik_offline" "\0"
+            VALUE "ProductName", "Yanik Iskambil" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

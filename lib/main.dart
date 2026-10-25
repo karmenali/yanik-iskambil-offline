@@ -71,7 +71,7 @@ class YanikOfflineApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Yanık İskambil VIP',
+      title: 'Yanık İskambil',
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         brightness: Brightness.dark,

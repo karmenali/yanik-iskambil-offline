@@ -1,5 +1,5 @@
 name: yanik_offline
-description: "Yanık İskambil VIP - Çevrimdışı Tek Kişilik İskambil Oyunu"
+description: "Yanık İskambil - Çevrimdışı Tek Kişilik İskambil Oyunu"
 publish_to: 'none'
 
 version: 1.0.0+1
@@ -27,6 +27,8 @@ flutter:
     - assets/images/table_bg.jpg
     - assets/images/game_logo.jpg
     - assets/images/joker_art.jpg
+    - assets/images/app_icon.png
+    - assets/images/app_icon.jpg
     - assets/sounds/card_draw.wav
     - assets/sounds/card_discard.wav
     - assets/sounds/card_slide.wav

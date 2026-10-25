@@ -1,11 +1,11 @@
 {
-    "name": "yanik_offline",
-    "short_name": "yanik_offline",
+    "name": "Yanık İskambil",
+    "short_name": "Yanık İskambil",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
     "theme_color": "#0175C2",
-    "description": "A new Flutter project.",
+    "description": "Yanık İskambil - Çevrimdışı Tek Kişilik İskambil Oyunu",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

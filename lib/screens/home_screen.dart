@@ -163,57 +163,64 @@ class _HomeScreenState extends State<HomeScreen> {
                       children: [
                         // 1. ÜST BAR: Profil ve Ayarlar
                         Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                           child: Row(
                             children: [
                               // Profil Avatarı & İsim
-                              InkWell(
-                                onTap: () => showDialog(
-                                  context: context,
-                                  builder: (_) => const SettingsDialog(),
-                                ),
-                                borderRadius: BorderRadius.circular(30),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 44,
-                                      height: 44,
-                                      decoration: BoxDecoration(
-                                        shape: BoxShape.circle,
-                                        color: const Color(0xFF0B2217),
-                                        border: Border.all(
-                                          color: const Color(0xFFD4AF37),
-                                          width: 1.8,
-                                        ),
-                                        boxShadow: const [
-                                          BoxShadow(
-                                            color: Colors.black45,
-                                            blurRadius: 4,
-                                            offset: Offset(0, 2),
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => showDialog(
+                                    context: context,
+                                    builder: (_) => const SettingsDialog(),
+                                  ),
+                                  borderRadius: BorderRadius.circular(30),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Container(
+                                        width: 44,
+                                        height: 44,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: const Color(0xFF0B2217),
+                                          border: Border.all(
+                                            color: const Color(0xFFD4AF37),
+                                            width: 1.8,
                                           ),
-                                        ],
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          avatar.emoji,
-                                          style: const TextStyle(fontSize: 22),
+                                          boxShadow: const [
+                                            BoxShadow(
+                                              color: Colors.black45,
+                                              blurRadius: 4,
+                                              offset: Offset(0, 2),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            avatar.emoji,
+                                            style: const TextStyle(fontSize: 22),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                    const SizedBox(width: 10),
-                                    Text(
-                                      settings.playerName,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w900,
-                                        fontSize: 16,
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          settings.playerName,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontWeight: FontWeight.w900,
+                                            fontSize: 16,
+                                          ),
+                                        ),
                                       ),
-                                    ),
-                                  ],
+                                    ],
+                                  ),
                                 ),
                               ),
 
-                              const Spacer(),
+                              const SizedBox(width: 8),
 
                               // Kurallar Butonu (En az 48x48 dp dokunma alanı)
                               IconButton(
@@ -255,20 +262,28 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: GameLogoWidget(size: logoSize),
                         ),
                         SizedBox(height: isSmall ? 10 : 16),
-                        Text(
-                          'YANIK İSKAMBİL',
-                          style: TextStyle(
-                            color: const Color(0xFFFDE047),
-                            fontWeight: FontWeight.w900,
-                            fontSize: isSmall ? 24 : 28,
-                            letterSpacing: 2.2,
-                            shadows: const [
-                              Shadow(
-                                color: Colors.black87,
-                                blurRadius: 8,
-                                offset: Offset(0, 3),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              'YANIK İSKAMBİL',
+                              maxLines: 1,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: const Color(0xFFFDE047),
+                                fontWeight: FontWeight.w900,
+                                fontSize: isSmall ? 24 : 28,
+                                letterSpacing: 2.0,
+                                shadows: const [
+                                  Shadow(
+                                    color: Colors.black87,
+                                    blurRadius: 8,
+                                    offset: Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                            ],
+                            ),
                           ),
                         ),
                         SizedBox(height: isSmall ? 8 : 14),
@@ -297,29 +312,32 @@ class _HomeScreenState extends State<HomeScreen> {
                                 ),
                               ],
                             ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Text(
-                                  settings.isAssisted ? '✨' : '🔥',
-                                  style: const TextStyle(fontSize: 13),
-                                ),
-                                const SizedBox(width: 6),
-                                Text(
-                                  settings.isAssisted ? 'Yardımlı Mod' : 'Yardımsız Mod',
-                                  style: const TextStyle(
-                                    color: Color(0xFFFDE047),
-                                    fontWeight: FontWeight.bold,
-                                    fontSize: 12.5,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    settings.isAssisted ? '✨' : '🔥',
+                                    style: const TextStyle(fontSize: 13),
                                   ),
-                                ),
-                                const SizedBox(width: 6),
-                                const Icon(
-                                  Icons.tune_rounded,
-                                  color: Color(0xFFFDE047),
-                                  size: 14,
-                                ),
-                              ],
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    settings.isAssisted ? 'Yardımlı Mod' : 'Yardımsız Mod',
+                                    style: const TextStyle(
+                                      color: Color(0xFFFDE047),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12.5,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  const Icon(
+                                    Icons.tune_rounded,
+                                    color: Color(0xFFFDE047),
+                                    size: 14,
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -373,25 +391,28 @@ class _HomeScreenState extends State<HomeScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
           child: const Center(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  Icons.play_arrow_rounded,
-                  color: Color(0xFFFDE047),
-                  size: 34,
-                ),
-                SizedBox(width: 10),
-                Text(
-                  'OYNA',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 20,
-                    letterSpacing: 2.0,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.play_arrow_rounded,
+                    color: Color(0xFFFDE047),
+                    size: 34,
                   ),
-                ),
-              ],
+                  SizedBox(width: 10),
+                  Text(
+                    'OYNA',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      letterSpacing: 2.0,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),

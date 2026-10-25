@@ -1,7 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 
-/// Yanık İskambil için geleneksel, prestijli ve özgün vektörel amblem/logo bileşeni.
+/// Yanık İskambil için alevli iskambil kartları temalı yüksek kaliteli amblem ve logo bileşeni.
 class GameLogoWidget extends StatelessWidget {
   final double size;
 
@@ -12,12 +12,38 @@ class GameLogoWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
+    final borderRadius = BorderRadius.circular(size * 0.20);
+
+    return Container(
       width: size,
       height: size,
-      child: CustomPaint(
-        size: Size(size, size),
-        painter: _GameLogoPainter(),
+      decoration: BoxDecoration(
+        borderRadius: borderRadius,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFD4AF37).withValues(alpha: 0.45),
+            blurRadius: (size * 0.16).clamp(8.0, 24.0),
+            spreadRadius: 1,
+          ),
+          const BoxShadow(
+            color: Colors.black87,
+            blurRadius: 12,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: borderRadius,
+        child: Image.asset(
+          'assets/images/app_icon.png',
+          width: size,
+          height: size,
+          fit: BoxFit.cover,
+          errorBuilder: (context, error, stackTrace) => CustomPaint(
+            size: Size(size, size),
+            painter: _GameLogoPainter(),
+          ),
+        ),
       ),
     );
   }
