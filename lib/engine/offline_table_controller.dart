@@ -68,6 +68,9 @@ class OfflineTableController extends ChangeNotifier {
   int? lastFinisherSeat;
   int? lastFalseDeclarerSeat;
   String? winnerMessage;
+  int? championSeatIndex;
+  String? championName;
+  bool get isHumanChampion => championSeatIndex == 0;
   final List<RoundHistoryEntry> roundHistory = [];
 
   Timer? _botTimer;
@@ -93,6 +96,9 @@ class OfflineTableController extends ChangeNotifier {
     _botTimer?.cancel();
     _botTimer = null;
     status = 'waiting';
+    winnerMessage = null;
+    championSeatIndex = null;
+    championName = null;
     notifyListeners();
   }
 
@@ -242,6 +248,8 @@ class OfflineTableController extends ChangeNotifier {
     final settings = SettingsService.instance;
 
     winnerMessage = null;
+    championSeatIndex = null;
+    championName = null;
     lastShowdown = null;
     lastFinisherSeat = null;
     lastFalseDeclarerSeat = null;
@@ -292,6 +300,9 @@ class OfflineTableController extends ChangeNotifier {
     status = 'dealing';
     hasDrawnThisTurn = false;
     discardPile.clear();
+    winnerMessage = null;
+    championSeatIndex = null;
+    championName = null;
     lastShowdown = null;
     lastFinisherSeat = null;
     lastFalseDeclarerSeat = null;
@@ -887,18 +898,24 @@ class OfflineTableController extends ChangeNotifier {
         final sortedByScore = List<OfflinePlayer>.from(players)
           ..sort((a, b) => a.totalScore.compareTo(b.totalScore));
         final champion = sortedByScore.first;
+        championSeatIndex = champion.seatIndex;
+        championName = champion.username;
         winnerMessage = champion.seatIndex == 0
             ? 'Tebrikler! Masayı Şampiyon Olarak Tamamladınız! 🏆'
             : '${champion.username} Şampiyon Oldu!';
       } else {
         alivePlayers.sort((a, b) => a.totalScore.compareTo(b.totalScore));
         final champion = alivePlayers.first;
+        championSeatIndex = champion.seatIndex;
+        championName = champion.username;
         winnerMessage = champion.seatIndex == 0
             ? 'Tebrikler! Masayı Şampiyon Olarak Tamamladınız! 🏆'
             : '${champion.username} Şampiyon Oldu!';
       }
     } else {
       winnerMessage = null;
+      championSeatIndex = null;
+      championName = null;
     }
 
     notifyListeners();

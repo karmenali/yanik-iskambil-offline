@@ -1,5 +1,6 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
+import '../l10n/l10n_extension.dart';
 
 /// Zynga / Monte Carlo Casino Standartlarında Prestijli Altın Parıltı ve Amblem Kutlama Katmanı.
 ///
@@ -26,6 +27,8 @@ class VictoryCelebrationOverlay extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOf(context);
+
     return AnimatedBuilder(
       animation: animation,
       builder: (context, _) {
@@ -48,6 +51,18 @@ class VictoryCelebrationOverlay extends StatelessWidget {
           curve: const Interval(0.85, 1.0, curve: Curves.easeIn),
         ).value;
         final overallAlpha = (1.0 - fadeOut).clamp(0.0, 1.0);
+
+        final titleText = isGrandChampion
+            ? l10n.celebrationTableChampion
+            : (isHumanWinner
+                ? l10n.celebrationRoundWinner
+                : l10n.celebrationBotFinished(winnerName));
+
+        final descText = isGrandChampion
+            ? l10n.celebrationChampionDesc
+            : (isHumanWinner
+                ? l10n.celebrationHumanRoundDesc
+                : l10n.celebrationBotRoundDesc(winnerName));
 
         return GestureDetector(
           onTap: onTap,
@@ -141,9 +156,7 @@ class VictoryCelebrationOverlay extends StatelessWidget {
 
                                     // Ana Başlık
                                     Text(
-                                      isGrandChampion
-                                          ? 'MASA ŞAMPİYONU'
-                                          : (isHumanWinner ? 'ELİ AÇTI VE BİTİRDİ' : '$winnerName BİTİRDİ'),
+                                      titleText,
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         color: Color(0xFFFDE047),
@@ -159,11 +172,7 @@ class VictoryCelebrationOverlay extends StatelessWidget {
 
                                     // Alt Açıklama
                                     Text(
-                                      isGrandChampion
-                                          ? 'Tebrikler! Masayı 1. Olarak Tamamladınız!'
-                                          : (isHumanWinner
-                                              ? 'Harika El! 0 Ceza Puanı'
-                                              : '$winnerName Turu 0 Ceza İle Kazandı'),
+                                      descText,
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
                                         color: Colors.white70,
@@ -182,18 +191,18 @@ class VictoryCelebrationOverlay extends StatelessWidget {
                               fit: BoxFit.scaleDown,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
-                                children: const [
-                                  Text('✦ ', style: TextStyle(color: Color(0xFFD4AF37), fontSize: 10)),
+                                children: [
+                                  const Text('✦ ', style: TextStyle(color: Color(0xFFD4AF37), fontSize: 10)),
                                   Text(
-                                    'Kutlamayı geçmek için dokunun',
-                                    style: TextStyle(
+                                    l10n.celebrationTapToSkip,
+                                    style: const TextStyle(
                                       color: Color(0xFFFDE047),
                                       fontSize: 10.5,
                                       fontWeight: FontWeight.w700,
                                       letterSpacing: 0.2,
                                     ),
                                   ),
-                                  Text(' ✦', style: TextStyle(color: Color(0xFFD4AF37), fontSize: 10)),
+                                  const Text(' ✦', style: TextStyle(color: Color(0xFFD4AF37), fontSize: 10)),
                                 ],
                               ),
                             ),

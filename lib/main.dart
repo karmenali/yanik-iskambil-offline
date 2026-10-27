@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'l10n/app_localizations.dart';
 import 'screens/home_screen.dart';
 import 'services/ad_service.dart';
 import 'services/settings_service.dart';
@@ -70,19 +71,28 @@ class YanikOfflineApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Yanık İskambil',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF05160F),
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFFD4AF37),
-          brightness: Brightness.dark,
-        ),
-        useMaterial3: true,
-      ),
-      home: const HomeScreen(),
+    return ListenableBuilder(
+      listenable: SettingsService.instance,
+      builder: (context, _) {
+        final currentLocale = SettingsService.instance.locale;
+        return MaterialApp(
+          title: 'Yanık İskambil',
+          debugShowCheckedModeBanner: false,
+          locale: currentLocale,
+          localizationsDelegates: AppLocalizations.localizationsDelegates,
+          supportedLocales: AppLocalizations.supportedLocales,
+          theme: ThemeData(
+            brightness: Brightness.dark,
+            scaffoldBackgroundColor: const Color(0xFF05160F),
+            colorScheme: ColorScheme.fromSeed(
+              seedColor: const Color(0xFFD4AF37),
+              brightness: Brightness.dark,
+            ),
+            useMaterial3: true,
+          ),
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }

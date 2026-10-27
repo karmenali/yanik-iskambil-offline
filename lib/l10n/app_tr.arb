@@ -1,0 +1,226 @@
+{
+  "@@locale": "tr",
+
+  "appTitle": "Yanık İskambil",
+  "homeTitle": "YANIK İSKAMBİL",
+  "defaultPlayerName": "Oyuncu",
+
+  "homePlayButton": "OYNA",
+  "homeAssistedMode": "Yardımlı Mod",
+  "homeUnassistedMode": "Yardımsız Mod",
+  "homeNewGameDialogTitle": "Yeni Oyun Başlatılsın mı?",
+  "homeNewGameDialogContent": "Devam eden bir oyununuz var. Yeni oyuna başlarsanız mevcut oyun ve puan durumu sıfırlanacaktır.",
+  "homeNewGameDialogCancel": "İptal",
+  "homeNewGameDialogConfirm": "Yeni Oyuna Başla",
+  "homeTooltipRules": "Kurallar",
+  "homeTooltipSettings": "Ayarlar",
+
+  "settingsTitle": "Oyun Ayarları",
+  "settingsClose": "Kapat",
+  "settingsLanguageSection": "🌐 DİL SEÇİMİ / LANGUAGE",
+  "settingsLanguageTr": "Türkçe",
+  "settingsLanguageEn": "English",
+  "settingsGameModeSection": "🎮 OYUN MODU",
+  "settingsAssistedTitle": "✨ Yardımlı Mod (Tavsiye Edilen)",
+  "settingsAssistedDesc": "Geçerli perleriniz (✓) ve elinizdeki toplam ceza sayısı canlı gösterilir. Otomatik per kontrolü açıktır.",
+  "settingsUnassistedTitle": "🔥 Yardımsız Usta Modu",
+  "settingsUnassistedDesc": "Hiçbir per veya ceza ipucu verilmez! Saf tecrübe ve dikkat. Hatalı el açan oyuncu direkt 101 puan ile yanar.",
+  "settingsSoundSection": "🔊 SES & TİTREŞİM",
+  "settingsSoundEffects": "Kart ve Oyun Sesleri",
+  "settingsVibration": "Titreşim Bildirimleri",
+  "settingsProfileSection": "👤 OYUNCU PROFİLİ",
+  "settingsPlayerNameLabel": "Oyuncu Adı",
+  "settingsSaveButton": "KAYDET VE DÖN",
+
+  "rulesTitle": "Nasıl Oynanır? (Kurallar)",
+  "rulesClose": "Kapat",
+  "rulesUnderstandButton": "ANLADIM",
+  "rulesSection1Title": "🃏 1. Deste, Dağıtım ve Kart Çekme",
+  "rulesSection1Body": "• Oyun 2 tam deste (104 kart) + 2 Fiziksel Joker olmak üzere toplam 106 kağıtla oynanır.\n• Her oyuncuya 10'ar kart dağıtılır.\n• Kart çekme YALNIZCA ortadaki kapalı desteden yapılır. Yanık İskambil'de yerden kart çekilemez.",
+  "rulesSection2Title": "👑 2. Jokerler (Gösterge & Fiziksel Joker)",
+  "rulesSection2Body": "• Dağıtım sonunda açılan Gösterge kartının sayı değeri o turun \"Gösterge Jokeri\" olur.\n• Her iki destedeki bu sayıdaki tüm kartlar (8 adet) ve 2 Fiziksel Joker ile toplam 10 joker bulunur.\n• Jokerler her per ve seride eksik kart yerine geçebilir.\n• 3 veya daha fazla Joker tek başına bağımsız bir per oluşturabilir.\n• DİKKAT: Tur sonunda per yapamayıp elinizde boşta kalan her Joker tam 25 ceza puanı yazar!",
+  "rulesSection3Title": "📐 3. Geçerli Perler (Setler ve Seriler)",
+  "rulesSection3Body": "Kartlar en az 3'erli gruplar halinde per yapılabilir:\n• Grup Per (Set): Aynı sayı değerine sahip, FARKLI sembollerde en az 3 veya 4 kart (Örn: ♠K, ♦K, ♣K veya ♥8, ♠8, ♦8, ♣8). Aynı renkten çift kart aynı sete konulamaz.\n• Seri Per (Run): Aynı sembolde ardışık en az 3 kart (Örn: ♥7, ♥8, ♥9, ♥10).\n• As (A): Serinin başında (A-2-3) veya sonunda (J-Q-K-A) yer alabilir; ancak döngüsel olamaz (K-A-2 geçersizdir).",
+  "rulesSection4Title": "🏆 4. El Açma ve Bitiş Kuralları",
+  "rulesSection4Body": "• Turunuzda kapalı desteden 1 kart çekerek 11 karta ulaşırsınız.\n• Elinizdeki 10 kartı geçerli perler halinde bağlayıp 11. kartı masaya atarak \"EL AÇ / BİTİR\" yapabilirsiniz.\n• Eli meşru açıp bitiren oyuncu o turda 0 CEZA PUANI alır.\n• Diğer oyuncular ise per yapamadıkları boşta kalan kartlarının ceza puanlarını alır.",
+  "rulesSection5Title": "💡 5. Örnek Kazanan El Senaryosu",
+  "rulesSection5Body": "10 meldelenmiş kart + 1 atılacak kart:\n• 1. Istaka Sırası: [♠8, ♥8, ♦8] (3'lü Grup Per)\n• 2. Istaka Sırası: [♣4, ♣5, ♣6, ♣7] (4'lü Seri Per)\n• 3. Istaka Sırası: [♥J, ♥Q, ♥K] (3'lü Seri Per)\n• Masaya Atılacak Kart: [♦2] (Boşta kalan 11. kart)\nSonuç: 10 kart perlere bağlı, 11. kart masaya atılarak el başarıyla biter!",
+  "rulesSection6Title": "✨ 6. Yardımlı Mod vs 🔥 Yardımsız Mod",
+  "rulesSection6Body": "• Yardımlı Mod: Perleriniz yeşil etiketlerle (✓ PER) ve elinizdeki anlık ceza puanı otomatik gösterilir. Bitiş için en uygun atılacak kart sistem tarafından desteklenir.\n• Yardımsız Mod: Hiçbir per veya ceza ipucu verilmez! Istakanızdaki sıralama tamamen sizin dikkatinize aittir.\n• ÖNEMLİ (Hatalı Açma Riski): Yardımsız modda eliniz geçerli olmadan hatalı el açarsanız DİREKT 101 CEZA ile yanarsınız; diğer tüm oyuncular 0 ceza alır!",
+  "rulesSection7Title": "🔢 7. Ceza Puanları ve 101 Barajı",
+  "rulesSection7Body": "Per yapılmayan boşta kalan kartların ceza değerleri:\n• As (A) = 10 puan\n• Papaz (K), Kız (Q), Vale (J) = 10 puan\n• 2 .. 10 = Kartın kendi rakam değeri\n• Joker = 25 puan\n• Toplam ceza puanı 101 veya üzerine çıkan oyuncu YANAR ve masadan elenir. Elenen oyuncular turlarda pas geçilir.",
+  "rulesSection8Title": "🔄 8. Deste Tükenmesi (Beraberlik)",
+  "rulesSection8Body": "• 106 kağıtlık kapalı çekme destesi tamamen biter ve kimse elini açamamışsa tur berabere tamamlanır.\n• Tüm oyuncular ellerindeki per dışı kartların ceza puanlarını hanelerine yazdırır.",
+  "rulesSection9Title": "🥇 9. Masanın Şampiyonu",
+  "rulesSection9Body": "• Yanık İskambil hayatta kalma oyunudur. Rakipler 101 ceza barajını aşarak elendikçe oyun devam eder.\n• Masada ayakta kalan son oyuncu oyunun ŞAMPİYONU olur!",
+
+  "tableTooltipLeave": "Masadan Ayrıl",
+  "tableTooltipScoresheet": "101 Skor Tablosu",
+  "tableTooltipSettings": "Ayarlar",
+  "tableRoundBadge": "El {roundNumber}",
+  "@tableRoundBadge": {
+    "placeholders": {
+      "roundNumber": { "type": "int" }
+    }
+  },
+  "tableModeAssisted": "Yardımlı",
+  "tableModeUnassisted": "Yardımsız",
+  "tableIndicator": "GÖSTERGE",
+  "tableDeckCount": "DESTE {count}",
+  "@tableDeckCount": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "tableDrawNow": "👇 ÇEK ({count})",
+  "@tableDrawNow": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "tableDiscardLabel": "ATILAN",
+  "tableDiscardPile": "ATILAN KART",
+  "tableBtnDraw": "DESTEDEN\nÇEK",
+  "tableBtnAutoMeld": "OTOMATİK\nPER DİZ",
+  "tableBtnSortRank": "SAYIYA GÖRE\nSIRALA",
+  "tableBtnDiscard": "KAĞIDI\nAT",
+  "tableBtnDeclareFinish": "EL AÇ\nBİTİR",
+  "tableRackUnassisted": "🔥 Yardımsız Mod",
+  "tableRackReadyToFinish": "✨ El Açmaya Hazır",
+  "tableRackPenaltyPoints": "Ceza: {points} Puan",
+  "@tableRackPenaltyPoints": {
+    "placeholders": {
+      "points": { "type": "int" }
+    }
+  },
+  "tableRackSelected": "Seçili: {card}",
+  "@tableRackSelected": {
+    "placeholders": {
+      "card": { "type": "String" }
+    }
+  },
+  "tableCardBadgeFinish": "AT & AÇ",
+  "tablePlayerYouSuffix": " (Sen)",
+  "tablePlayerWon": "KAZANDI",
+  "tablePlayerBust": "YANDI ({score})",
+  "@tablePlayerBust": {
+    "placeholders": {
+      "score": { "type": "int" }
+    }
+  },
+  "tablePlayerPenalty": "Ceza: {score}",
+  "@tablePlayerPenalty": {
+    "placeholders": {
+      "score": { "type": "int" }
+    }
+  },
+
+  "tableLeaveDialogTitle": "Masadan Çıkılsın mı?",
+  "tableLeaveDialogContent": "Mevcut oyun sonlandırılacak ve ana menüye dönülecektir.",
+  "tableLeaveDialogCancel": "İPTAL",
+  "tableLeaveDialogConfirm": "ÇIK",
+
+  "tableFalseFinishDialogTitle": "Hatalı El Açma Uyarısı",
+  "tableFalseFinishDialogContent": "Geçersiz el açarsanız 101 ceza alacaksınız. Devam etmek istiyor musunuz?",
+  "tableFalseFinishDialogCancel": "Vazgeç",
+  "tableFalseFinishDialogConfirm": "Devam Et",
+  "tableNotReadySnackBar": "Eliniz henüz bitişe hazır değil.",
+
+  "tableDiscardSheetTitle": "Atılacak Kartı Seçin",
+  "tableDiscardSheetDesc": "Elinizi açıp bitirmek için masaya atmak istediğiniz kartı seçin:",
+  "tableDiscardSheetCancel": "Vazgeç",
+
+  "tableRecentDiscardsTitle": "🗑️ Yere Atılan Son Kağıtlar",
+  "tableRecentDiscardsEmpty": "Bu elde henüz yere kağıt atılmadı.",
+
+  "tableScoresheetTitle": "📝 OYUN ÇETELESİ (101 CEZA TABLOSU)",
+  "tableScoresheetSubtitle": "El #{roundNumber} • {mode}",
+  "@tableScoresheetSubtitle": {
+    "placeholders": {
+      "roundNumber": { "type": "int" },
+      "mode": { "type": "String" }
+    }
+  },
+  "tableScoresheetColRound": "EL",
+  "tableScoresheetEmpty": "Henüz el tamamlanmadı. İlk el bittiğinde cezalar buraya yazılacaktır.",
+  "tableScoresheetRoundLabel": "{roundNumber}. El",
+  "@tableScoresheetRoundLabel": {
+    "placeholders": {
+      "roundNumber": { "type": "int" }
+    }
+  },
+  "tableScoresheetDeclared": "AÇTI",
+  "tableScoresheetTotal": "TOPLAM",
+  "tableScoresheetBust": "YANDI",
+
+  "summaryTitleGameOver": "🏆 OYUN BİTTİ",
+  "summaryTitleRoundResult": "📊 TUR {roundNumber} SONUCU",
+  "@summaryTitleRoundResult": {
+    "placeholders": {
+      "roundNumber": { "type": "int" }
+    }
+  },
+  "summaryPlayerDeclared": "✨ Eli Açtı (0 Ceza)",
+  "summaryPlayerFalseFinish": "❌ Hatalı El Açma (101 Ceza)",
+  "summaryPlayerUnmeldedCards": "{count, plural, =1{Boşta: 1 kağıt} other{Boşta: {count} kağıt}}",
+  "@summaryPlayerUnmeldedCards": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "summaryPlayerBust": "🔥 YANDI ({score})",
+  "@summaryPlayerBust": {
+    "placeholders": {
+      "score": { "type": "int" }
+    }
+  },
+  "summaryPlayerTotalScore": "Toplam: {score} / 101",
+  "@summaryPlayerTotalScore": {
+    "placeholders": {
+      "score": { "type": "int" }
+    }
+  },
+  "summaryMeldBadge": "PER {meldNumber}",
+  "@summaryMeldBadge": {
+    "placeholders": {
+      "meldNumber": { "type": "int" }
+    }
+  },
+  "summaryDeadwoodBadge": "BOŞTA ({count})",
+  "@summaryDeadwoodBadge": {
+    "placeholders": {
+      "count": { "type": "int" }
+    }
+  },
+  "summaryBtnMainMenu": "ANA MENÜ",
+  "summaryBtnPlayAgain": "TEKRAR OYNA 🏆",
+  "summaryBtnContinue": "DEVAM ET ➜",
+
+  "celebrationTableChampion": "MASA ŞAMPİYONU",
+  "celebrationRoundWinner": "ELİ AÇTI VE BİTİRDİ",
+  "celebrationBotFinished": "{winnerName} BİTİRDİ",
+  "@celebrationBotFinished": {
+    "placeholders": {
+      "winnerName": { "type": "String" }
+    }
+  },
+  "celebrationChampionDesc": "Tebrikler! Masayı 1. Olarak Tamamladınız!",
+  "celebrationHumanRoundDesc": "Harika El! 0 Ceza Puanı",
+  "celebrationBotRoundDesc": "{winnerName} Turu 0 Ceza İle Kazandı",
+  "@celebrationBotRoundDesc": {
+    "placeholders": {
+      "winnerName": { "type": "String" }
+    }
+  },
+  "celebrationTapToSkip": "Kutlamayı geçmek için dokunun",
+
+  "gameOverTitleChampion": "🏆 ŞAMPİYON! 🏆",
+  "gameOverTitleBust": "🔥 OYUN BİTTİ",
+  "championHumanMessage": "Tebrikler! Masayı Şampiyon Olarak Tamamladınız! 🏆",
+  "championBotMessage": "{name} Şampiyon Oldu!",
+  "@championBotMessage": {
+    "placeholders": {
+      "name": { "type": "String" }
+    }
+  }
+}

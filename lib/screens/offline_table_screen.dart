@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../engine/card_model.dart';
 import '../engine/game_engine.dart';
 import '../engine/offline_table_controller.dart';
+import '../l10n/l10n_extension.dart';
 import '../services/sound_fx.dart';
 import '../widgets/playing_card_widget.dart';
 import '../widgets/round_summary_dialog.dart';
@@ -275,9 +276,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     final isHuman = finisherSeat == 0;
     final isGrandChampion =
         _ctrl.winnerMessage != null && _ctrl.winnerMessage!.isNotEmpty;
+    final l10n = l10nOf(context);
     final winnerName = winner != null
-        ? (isHuman ? 'Sen' : winner.username)
-        : 'Kazanan';
+        ? (isHuman ? l10n.defaultPlayerName : winner.username)
+        : l10n.defaultPlayerName;
 
     setState(() {
       _isCelebrationActive = true;
@@ -346,6 +348,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   }
 
   Future<void> _confirmAndLeaveTable() async {
+    final l10n = l10nOf(context);
     final leave = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -354,18 +357,18 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
           borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: Color(0xFFD4AF37)),
         ),
-        title: const Text(
-          'Masadan Çıkılsın mı?',
-          style: TextStyle(color: Color(0xFFFDE047), fontWeight: FontWeight.bold),
+        title: Text(
+          l10n.tableLeaveDialogTitle,
+          style: const TextStyle(color: Color(0xFFFDE047), fontWeight: FontWeight.bold),
         ),
-        content: const Text(
-          'Mevcut oyun sonlandırılacak ve ana menüye dönülecektir.',
-          style: TextStyle(color: Colors.white70),
+        content: Text(
+          l10n.tableLeaveDialogContent,
+          style: const TextStyle(color: Colors.white70),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('İPTAL', style: TextStyle(color: Colors.white60)),
+            child: Text(l10n.tableLeaveDialogCancel, style: const TextStyle(color: Colors.white60)),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -373,7 +376,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               foregroundColor: Colors.white,
             ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('ÇIK'),
+            child: Text(l10n.tableLeaveDialogConfirm),
           ),
         ],
       ),
@@ -624,6 +627,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   // ===========================================================================
   Widget _buildZyngaTopBar() {
     final isAssisted = _ctrl.isAssisted;
+    final l10n = l10nOf(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
@@ -655,9 +659,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   // Geri Butonu (En az 48x48 dp dokunma alanı)
                   Semantics(
                     button: true,
-                    label: 'Masadan ayrıl',
+                    label: l10n.tableTooltipLeave,
                     child: Tooltip(
-                      message: 'Masadan Ayrıl',
+                      message: l10n.tableTooltipLeave,
                       child: InkWell(
                         onTap: _confirmAndLeaveTable,
                         borderRadius: BorderRadius.circular(24),
@@ -717,7 +721,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                         ),
                         const SizedBox(width: 3),
                         Text(
-                          isAssisted ? 'Yardımlı' : 'Yardımsız',
+                          isAssisted ? l10n.tableModeAssisted : l10n.tableModeUnassisted,
                           style: const TextStyle(
                             color: Color(0xFFFDE047),
                             fontWeight: FontWeight.w900,
@@ -745,7 +749,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                         const Icon(Icons.refresh_rounded, color: Color(0xFFFDE047), size: 12),
                         const SizedBox(width: 3),
                         Text(
-                          'El ${_ctrl.roundNumber}',
+                          l10n.tableRoundBadge(_ctrl.roundNumber),
                           style: const TextStyle(
                             color: Colors.white,
                             fontWeight: FontWeight.w900,
@@ -771,9 +775,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 // 101 Puan Tablosu Butonu (En az 48x48 dp dokunma alanı)
                 Semantics(
                   button: true,
-                  label: '101 Skor Tablosu',
+                  label: l10n.tableTooltipScoresheet,
                   child: Tooltip(
-                    message: '101 Skor Tablosu',
+                    message: l10n.tableTooltipScoresheet,
                     child: InkWell(
                       onTap: () {
                         SoundFx.playCardTap();
@@ -820,9 +824,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 // Ayarlar Dişlisi (En az 48x48 dp dokunma alanı)
                 Semantics(
                   button: true,
-                  label: 'Ayarlar',
+                  label: l10n.tableTooltipSettings,
                   child: Tooltip(
-                    message: 'Ayarlar',
+                    message: l10n.tableTooltipSettings,
                     child: InkWell(
                       onTap: () {
                         SoundFx.playCardTap();
@@ -940,6 +944,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
     required OfflinePlayer seat,
     required int seatIndex,
   }) {
+    final l10n = l10nOf(context);
     final isMe = seatIndex == 0;
     final isCurrentTurn = _ctrl.status == 'playing' && _ctrl.currentTurnSeat == seatIndex;
     final isDealer = _ctrl.dealerSeat == seatIndex;
@@ -1054,14 +1059,14 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                       ],
                       border: Border.all(color: Colors.white, width: 0.8),
                     ),
-                    child: const Row(
+                    child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text('👑', style: TextStyle(fontSize: 9.5)),
-                        SizedBox(width: 2),
+                        const Text('👑', style: TextStyle(fontSize: 9.5)),
+                        const SizedBox(width: 2),
                         Text(
-                          'KAZANDI',
-                          style: TextStyle(
+                          l10n.tablePlayerWon,
+                          style: const TextStyle(
                             color: Color(0xFF1E130C),
                             fontWeight: FontWeight.w900,
                             fontSize: 8,
@@ -1151,7 +1156,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   seat.isBot
                       ? '🤖 ${seat.username}'
                       : isMe
-                          ? '${seat.username} (Sen)'
+                          ? '${seat.username}${l10n.tablePlayerYouSuffix}'
                           : seat.username,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -1163,7 +1168,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 ),
                 Text(
                   seat.isEliminated
-                      ? 'YANDI (${seat.totalScore})'
+                      ? l10n.tablePlayerBust(seat.totalScore)
                       : '${seat.totalScore}/101',
                   style: TextStyle(
                     color: seat.isEliminated || seat.totalScore >= 85
@@ -1184,6 +1189,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   /// Masa Ortası: Gösterge Jokeri (Sol) + 3D Kapalı Deste (Orta) + Atılan Kağıt (Sağ)
   /// Sabit 72px genişlikli yuvalar sayesinde kart çekildiğinde veya atıldığında ASLA kayma olmaz!
   Widget _buildCenterTableFeltCards() {
+    final l10n = l10nOf(context);
     final indicator = _ctrl.indicatorCard;
     final drawCount = _ctrl.drawPileCount;
     final discardTop = _ctrl.topDiscardCard;
@@ -1218,16 +1224,16 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 else
                   const SizedBox(width: 52, height: 74),
                 const SizedBox(height: 3),
-                const SizedBox(
+                SizedBox(
                   height: 16,
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     alignment: Alignment.center,
                     child: Text(
-                      'GÖSTERGE',
+                      l10n.tableIndicator,
                       maxLines: 1,
                       textAlign: TextAlign.center,
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: Color(0xFFFDE047),
                         fontWeight: FontWeight.w900,
                         fontSize: 10,
@@ -1277,7 +1283,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.center,
                       child: Text(
-                        canDrawNow ? '👇 ÇEK ($drawCount)' : 'DESTE $drawCount',
+                        canDrawNow ? l10n.tableDrawNow(drawCount) : l10n.tableDeckCount(drawCount),
                         maxLines: 1,
                         textAlign: TextAlign.center,
                         style: TextStyle(
@@ -1325,10 +1331,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                               color: const Color(0xFFD4AF37).withValues(alpha: 0.4),
                             ),
                           ),
-                          child: const Center(
+                          child: Center(
                             child: Text(
-                              'ATILAN',
-                              style: TextStyle(
+                              l10n.tableDiscardLabel,
+                              style: const TextStyle(
                                 color: Colors.white38,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 8.5,
@@ -1337,16 +1343,16 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                           ),
                         ),
                   const SizedBox(height: 3),
-                  const SizedBox(
+                  SizedBox(
                     height: 16,
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.center,
                       child: Text(
-                        'ATILAN KART',
+                        l10n.tableDiscardPile,
                         maxLines: 1,
                         textAlign: TextAlign.center,
-                        style: TextStyle(
+                        style: const TextStyle(
                           color: Color(0xFFFDE047),
                           fontWeight: FontWeight.w900,
                           fontSize: 10,
@@ -1369,6 +1375,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   // 3. ALT OYUNCU ELİ: 3 SIRALI ISTAKA + 4 ADET 3D ZYNGA BUTONU
   // ===========================================================================
   Widget _buildThreeRowBottomHandAndControls() {
+    final l10n = l10nOf(context);
     final isAssisted = _ctrl.isAssisted;
     final meldedIds = _ctrl.meldedCardIds;
     final canFinish = _ctrl.canFinishNow;
@@ -1411,10 +1418,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 ),
                 child: Text(
                   !isAssisted
-                      ? '🔥 Yardımsız Mod'
+                      ? l10n.tableRackUnassisted
                       : canFinish
-                          ? '✨ El Açmaya Hazır'
-                          : 'Ceza: $deadwoodPoints Puan',
+                          ? l10n.tableRackReadyToFinish
+                          : l10n.tableRackPenaltyPoints(deadwoodPoints),
                   style: TextStyle(
                     color: !isAssisted
                         ? const Color(0xFFFCA5A5)
@@ -1428,7 +1435,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               ),
               if (selectedCard != null)
                 Text(
-                  'Seçili: ${selectedCard.rankLabel}${selectedCard.suitSymbol}',
+                  l10n.tableRackSelected('${selectedCard.rankLabel}${selectedCard.suitSymbol}'),
                   style: const TextStyle(
                     color: Color(0xFFFDE047),
                     fontSize: 10,
@@ -1457,7 +1464,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               // 1. DESTEDEN ÇEK
               Expanded(
                 child: _buildZynga3DButton(
-                  label: 'DESTEDEN\nÇEK',
+                  label: l10n.tableBtnDraw,
                   isGold: true,
                   enabled: isPlaying && isMyTurn && !hasDrawn,
                   glow: isPlaying && isMyTurn && !hasDrawn,
@@ -1469,7 +1476,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               // 2. OTOMATİK PER DİZ / SAYIYA GÖRE SIRALA
               Expanded(
                 child: _buildZynga3DButton(
-                  label: isAssisted ? 'OTOMATİK\nPER DİZ' : 'SAYIYA GÖRE\nSIRALA',
+                  label: isAssisted ? l10n.tableBtnAutoMeld : l10n.tableBtnSortRank,
                   isGold: false,
                   enabled: _ctrl.players.isNotEmpty && _ctrl.players[0].hand.isNotEmpty,
                   onTap: () {
@@ -1487,7 +1494,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               // 3. KAĞIDI AT
               Expanded(
                 child: _buildZynga3DButton(
-                  label: 'KAĞIDI\nAT',
+                  label: l10n.tableBtnDiscard,
                   isGold: true,
                   enabled: isPlaying &&
                       isMyTurn &&
@@ -1505,7 +1512,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               // 4. EL AÇ / BİTİR
               Expanded(
                 child: _buildZynga3DButton(
-                  label: 'EL AÇ\nBİTİR',
+                  label: l10n.tableBtnDeclareFinish,
                   isGold: false,
                   enabled: isPlaying && isMyTurn && canFinish,
                   glow: isPlaying && isMyTurn && canFinish,
@@ -1523,6 +1530,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   Future<void> _onDeclareFinishPressed() async {
     if (_isConfirmingFinish || !_ctrl.isHumanTurn || !_ctrl.hasDrawnThisTurn) return;
 
+    final l10n = l10nOf(context);
     final candidates = _ctrl.getValidDiscardCandidates();
 
     // 1. Durum: Elde hiçbir geçerli bitiş yok (Geçersiz el açma)
@@ -1540,15 +1548,15 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                 borderRadius: BorderRadius.circular(18),
                 side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
               ),
-              title: const Row(
+              title: Row(
                 children: [
-                  Icon(Icons.warning_amber_rounded,
+                  const Icon(Icons.warning_amber_rounded,
                       color: Color(0xFFEF4444), size: 28),
-                  SizedBox(width: 8),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Hatalı El Açma Uyarısı',
-                      style: TextStyle(
+                      l10n.tableFalseFinishDialogTitle,
+                      style: const TextStyle(
                         color: Color(0xFFFDE047),
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
@@ -1557,9 +1565,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   ),
                 ],
               ),
-              content: const Text(
-                'Geçersiz el açarsanız 101 ceza alacaksınız. Devam etmek istiyor musunuz?',
-                style: TextStyle(
+              content: Text(
+                l10n.tableFalseFinishDialogContent,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
                   height: 1.4,
@@ -1571,9 +1579,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   onPressed: () {
                     Navigator.of(dialogCtx).pop(false);
                   },
-                  child: const Text(
-                    'Vazgeç',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.tableFalseFinishDialogCancel,
+                    style: const TextStyle(
                       color: Colors.white70,
                       fontWeight: FontWeight.bold,
                       fontSize: 14,
@@ -1591,9 +1599,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   onPressed: () {
                     Navigator.of(dialogCtx).pop(true);
                   },
-                  child: const Text(
-                    'Devam Et',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.tableFalseFinishDialogConfirm,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 14,
                     ),
@@ -1609,10 +1617,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         }
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Eliniz henüz bitişe hazır değil.'),
-            duration: Duration(seconds: 2),
-            backgroundColor: Color(0xFF1E3A2F),
+          SnackBar(
+            content: Text(l10n.tableNotReadySnackBar),
+            duration: const Duration(seconds: 2),
+            backgroundColor: const Color(0xFF1E3A2F),
           ),
         );
       }
@@ -1656,6 +1664,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         side: BorderSide(color: Color(0xFFD4AF37), width: 1.5),
       ),
       builder: (sheetCtx) {
+        final l10n = l10nOf(context);
         return SafeArea(
           child: Padding(
             padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
@@ -1671,16 +1680,16 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
-                const Row(
+                Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.touch_app, color: Color(0xFFFDE047), size: 20),
-                    SizedBox(width: 8),
+                    const Icon(Icons.touch_app, color: Color(0xFFFDE047), size: 20),
+                    const SizedBox(width: 8),
                     Flexible(
                       child: Text(
-                        'Atılacak Kartı Seçin',
-                        style: TextStyle(
+                        l10n.tableDiscardSheetTitle,
+                        style: const TextStyle(
                           color: Color(0xFFFDE047),
                           fontWeight: FontWeight.w900,
                           fontSize: 16,
@@ -1691,10 +1700,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                   ],
                 ),
                 const SizedBox(height: 8),
-                const Text(
-                  'Elinizi açıp bitirmek için masaya atmak istediğiniz kartı seçin:',
+                Text(
+                  l10n.tableDiscardSheetDesc,
                   textAlign: TextAlign.center,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 13,
                   ),
@@ -1756,9 +1765,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                       ),
                     ),
                     onPressed: () => Navigator.of(sheetCtx).pop(null),
-                    child: const Text(
-                      'Vazgeç',
-                      style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                    child: Text(
+                      l10n.tableDiscardSheetCancel,
+                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
                 ),
@@ -2305,6 +2314,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
       ),
       builder: (ctx) {
+        final l10n = l10nOf(context);
         final history = _ctrl.discardPile.reversed.toList();
         return Padding(
           padding: const EdgeInsets.all(16),
@@ -2312,9 +2322,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                '🗑️ Yere Atılan Son Kağıtlar',
-                style: TextStyle(
+              Text(
+                l10n.tableRecentDiscardsTitle,
+                style: const TextStyle(
                   color: Color(0xFFFDE047),
                   fontWeight: FontWeight.w900,
                   fontSize: 15,
@@ -2322,11 +2332,11 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               ),
               const SizedBox(height: 12),
               history.isEmpty
-                  ? const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                  ? Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Text(
-                        'Bu elde henüz yere kağıt atılmadı.',
-                        style: TextStyle(color: Colors.white54),
+                        l10n.tableRecentDiscardsEmpty,
+                        style: const TextStyle(color: Colors.white54),
                       ),
                     )
                   : SizedBox(
@@ -2355,6 +2365,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   // 5. 101 PUAN ÇETELESİ MODALI (Orijinal Kareli Kağıt / Defter Tasarımı)
   // ===========================================================================
   Widget _buildScoreboardOverlay() {
+    final l10n = l10nOf(context);
     final seats = _ctrl.players;
     final history = _ctrl.roundHistory;
 
@@ -2402,9 +2413,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Text(
-                                '📝 OYUN ÇETELESİ (101 CEZA TABLOSU)',
-                                style: TextStyle(
+                              Text(
+                                l10n.tableScoresheetTitle,
+                                style: const TextStyle(
                                   color: Color(0xFF451A03),
                                   fontWeight: FontWeight.w900,
                                   fontSize: 14,
@@ -2412,7 +2423,10 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                                 ),
                               ),
                               Text(
-                                'El #${_ctrl.roundNumber} • ${_ctrl.isAssisted ? "Yardımlı Mod" : "Yardımsız Mod"}',
+                                l10n.tableScoresheetSubtitle(
+                                  _ctrl.roundNumber,
+                                  _ctrl.isAssisted ? l10n.homeAssistedMode : l10n.homeUnassistedMode,
+                                ),
                                 style: const TextStyle(
                                   color: Color(0xFF92400E),
                                   fontWeight: FontWeight.w600,
@@ -2424,7 +2438,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                         ),
                         IconButton(
                           constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
-                          tooltip: 'Kapat',
+                          tooltip: l10n.settingsClose,
                           onPressed: () => setState(() => _showScoreboardModal = false),
                           icon: const Icon(Icons.close, color: Color(0xFF78350F)),
                         ),
@@ -2444,12 +2458,12 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                       ),
                       child: Row(
                         children: [
-                          const SizedBox(
+                          SizedBox(
                             width: 52,
                             child: Text(
-                              'EL',
+                              l10n.tableScoresheetColRound,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Color(0xFF451A03),
                                 fontWeight: FontWeight.w900,
                                 fontSize: 12,
@@ -2463,7 +2477,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                           ...seats.map(
                             (p) => Expanded(
                               child: Text(
-                                p.seatIndex == 0 ? '${p.username} (Sen)' : p.username,
+                                p.seatIndex == 0 ? '${p.username}${l10n.tablePlayerYouSuffix}' : p.username,
                                 textAlign: TextAlign.center,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -2484,13 +2498,13 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                     // ÇETELE GÖVDESİ: Her Elin Satırı (1. El, 2. El... Açtı / Ceza Puanı)
                     Flexible(
                       child: history.isEmpty
-                          ? const Center(
+                          ? Center(
                               child: Padding(
-                                padding: EdgeInsets.all(24.0),
+                                padding: const EdgeInsets.all(24.0),
                                 child: Text(
-                                  'Henüz el tamamlanmadı. İlk el bittiğinde cezalar buraya yazılacaktır.',
+                                  l10n.tableScoresheetEmpty,
                                   textAlign: TextAlign.center,
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: Color(0xFF92400E),
                                     fontStyle: FontStyle.italic,
                                     fontSize: 12,
@@ -2523,7 +2537,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                                       SizedBox(
                                         width: 52,
                                         child: Text(
-                                          '$rNum. El',
+                                          l10n.tableScoresheetRoundLabel(rNum),
                                           textAlign: TextAlign.center,
                                           style: const TextStyle(
                                             color: Color(0xFF78350F),
@@ -2547,7 +2561,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                                         FontWeight fw = FontWeight.w600;
 
                                         if (isFinisher) {
-                                          text = 'AÇTI';
+                                          text = l10n.tableScoresheetDeclared;
                                           col = const Color(0xFF047857);
                                           fw = FontWeight.w900;
                                         } else if (sc != null) {
@@ -2587,12 +2601,12 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                       ),
                       child: Row(
                         children: [
-                          const SizedBox(
+                          SizedBox(
                             width: 52,
                             child: Text(
-                              'TOPLAM',
+                              l10n.tableScoresheetTotal,
                               textAlign: TextAlign.center,
-                              style: TextStyle(
+                              style: const TextStyle(
                                 color: Color(0xFF451A03),
                                 fontWeight: FontWeight.w900,
                                 fontSize: 11,
@@ -2637,9 +2651,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                                           width: 1,
                                         ),
                                       ),
-                                      child: const Text(
-                                        'YANDI',
-                                        style: TextStyle(
+                                      child: Text(
+                                        l10n.tableScoresheetBust,
+                                        style: const TextStyle(
                                           color: Color(0xFFDC2626),
                                           fontSize: 8.5,
                                           fontWeight: FontWeight.w900,
@@ -2665,8 +2679,16 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
   }
 
   Widget _buildGameOverOverlay() {
-    final winnerMsg = _ctrl.winnerMessage ?? 'Oyun Sona Erdi!';
-    final isHumanWinner = winnerMsg.contains('Tebrikler');
+    final l10n = l10nOf(context);
+    final isHumanWinner = _ctrl.championSeatIndex != null
+        ? _ctrl.isHumanChampion
+        : (_ctrl.winnerMessage?.contains('Tebrikler') ?? false);
+
+    final winnerMsg = _ctrl.championSeatIndex != null
+        ? (_ctrl.isHumanChampion
+            ? l10n.championHumanMessage
+            : l10n.championBotMessage(_ctrl.championName ?? ''))
+        : (_ctrl.winnerMessage ?? l10n.summaryTitleGameOver);
 
     return Positioned.fill(
       child: Container(
@@ -2688,7 +2710,7 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  isHumanWinner ? '🏆 ŞAMPİYON! 🏆' : '🔥 OYUN BİTTİ',
+                  isHumanWinner ? l10n.gameOverTitleChampion : l10n.gameOverTitleBust,
                   style: const TextStyle(
                     color: Color(0xFFFDE047),
                     fontSize: 22,
@@ -2723,9 +2745,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                             _ctrl.stopGame();
                             Navigator.of(context).pop();
                           },
-                          child: const Text(
-                            'ANA MENÜ',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.summaryBtnMainMenu,
+                            style: const TextStyle(
                               color: Color(0xFFFDE047),
                               fontWeight: FontWeight.bold,
                               fontSize: 12,
@@ -2752,9 +2774,9 @@ class _OfflineTableScreenState extends State<OfflineTableScreen>
                             _syncLocalRowsFromController();
                             setState(() {});
                           },
-                          child: const Text(
-                            'TEKRAR OYNA 🏆',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.summaryBtnPlayAgain,
+                            style: const TextStyle(
                               fontWeight: FontWeight.w900,
                               fontSize: 13,
                             ),

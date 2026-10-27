@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../engine/card_model.dart';
+import '../l10n/l10n_extension.dart';
 import '../services/ad_service.dart';
 import 'playing_card_widget.dart';
 
@@ -26,6 +27,7 @@ class RoundSummaryDialog extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isGameOver = winnerMessage != null;
+    final l10n = l10nOf(context);
 
     return PopScope(
       canPop: false, // Yanlışlıkla geri tuşuyla kapatmayı engelle
@@ -62,7 +64,9 @@ class RoundSummaryDialog extends StatelessWidget {
                   child: FittedBox(
                     fit: BoxFit.scaleDown,
                     child: Text(
-                      isGameOver ? '🏆 OYUN BİTTİ' : '📊 TUR $roundNumber SONUCU',
+                      isGameOver
+                          ? l10n.summaryTitleGameOver
+                          : l10n.summaryTitleRoundResult(roundNumber),
                       style: const TextStyle(
                         color: Color(0xFFFDE047),
                         fontSize: 17,
@@ -100,7 +104,7 @@ class RoundSummaryDialog extends StatelessWidget {
                   separatorBuilder: (_, _) => const SizedBox(height: 8),
                   itemBuilder: (ctx, i) {
                     final res = results[i];
-                    return _buildPlayerResultCard(res);
+                    return _buildPlayerResultCard(res, l10n);
                   },
                 ),
               ),
@@ -136,20 +140,20 @@ class RoundSummaryDialog extends StatelessWidget {
                                     },
                                   );
                                 },
-                                child: const FittedBox(
+                                child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(
+                                      const Icon(
                                         Icons.home_rounded,
                                         color: Color(0xFFFDE047),
                                         size: 19,
                                       ),
-                                      SizedBox(width: 5),
+                                      const SizedBox(width: 5),
                                       Text(
-                                        'ANA MENÜ',
-                                        style: TextStyle(
+                                        l10n.summaryBtnMainMenu,
+                                        style: const TextStyle(
                                           color: Color(0xFFFDE047),
                                           fontSize: 12.5,
                                           fontWeight: FontWeight.bold,
@@ -190,16 +194,16 @@ class RoundSummaryDialog extends StatelessWidget {
                                     },
                                   );
                                 },
-                                child: const FittedBox(
+                                child: FittedBox(
                                   fit: BoxFit.scaleDown,
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.replay_rounded, size: 20),
-                                      SizedBox(width: 6),
+                                      const Icon(Icons.replay_rounded, size: 20),
+                                      const SizedBox(width: 6),
                                       Text(
-                                        'TEKRAR OYNA 🏆',
-                                        style: TextStyle(
+                                        l10n.summaryBtnPlayAgain,
+                                        style: const TextStyle(
                                           fontSize: 13.5,
                                           fontWeight: FontWeight.w900,
                                           letterSpacing: 0.5,
@@ -232,9 +236,9 @@ class RoundSummaryDialog extends StatelessWidget {
                               onDismissed: onContinue,
                             );
                           },
-                          child: const Text(
-                            'DEVAM ET ➜',
-                            style: TextStyle(
+                          child: Text(
+                            l10n.summaryBtnContinue,
+                            style: const TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w900,
                               letterSpacing: 0.8,
@@ -250,7 +254,7 @@ class RoundSummaryDialog extends StatelessWidget {
     );
   }
 
-  Widget _buildPlayerResultCard(ShowdownPlayerResult res) {
+  Widget _buildPlayerResultCard(ShowdownPlayerResult res, AppLocalizations l10n) {
     final avatar = VipAvatar.fromKey(res.avatar);
     final bool isMe = res.userId == 'user_me';
 
@@ -299,9 +303,9 @@ class RoundSummaryDialog extends StatelessWidget {
                             ),
                           ),
                           if (isMe)
-                            const TextSpan(
-                              text: ' (Sen)',
-                              style: TextStyle(
+                            TextSpan(
+                              text: l10n.tablePlayerYouSuffix,
+                              style: const TextStyle(
                                 color: Color(0xFFFDE047),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 10.5,
@@ -314,10 +318,10 @@ class RoundSummaryDialog extends StatelessWidget {
                     ),
                     Text(
                       res.isFinisher
-                          ? '✨ Eli Açtı (0 Ceza)'
+                          ? l10n.summaryPlayerDeclared
                           : (res.isFalseDeclarer
-                              ? '❌ Hatalı El Açma (101 Ceza)'
-                              : 'Boşta: ${res.unmelded.length} kağıt'),
+                              ? l10n.summaryPlayerFalseFinish
+                              : l10n.summaryPlayerUnmeldedCards(res.unmelded.length)),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
@@ -353,8 +357,8 @@ class RoundSummaryDialog extends StatelessWidget {
                       alignment: Alignment.centerRight,
                       child: Text(
                         res.burnedThisRound
-                            ? '🔥 YANDI (${res.newTotalScore})'
-                            : 'Toplam: ${res.newTotalScore} / 101',
+                            ? l10n.summaryPlayerBust(res.newTotalScore)
+                            : l10n.summaryPlayerTotalScore(res.newTotalScore),
                         style: TextStyle(
                           color: res.burnedThisRound
                               ? const Color(0xFFDC2626)
@@ -381,11 +385,11 @@ class RoundSummaryDialog extends StatelessWidget {
                 children: [
                   // 1. PER KAPSÜLLERİ (MELD CAPSULES) - Her per bağımsız çerçevede ve 12 dp aralıkla
                   for (int mIdx = 0; mIdx < res.melds.length; mIdx++)
-                    _buildMeldCapsule(res.melds[mIdx], mIdx + 1, cardW, cardH),
+                    _buildMeldCapsule(res.melds[mIdx], mIdx + 1, cardW, cardH, l10n),
 
                   // 2. ELDE KALANLAR (DEADWOOD) - Belirgin kırmızı/amber çerçeveli ayrılmış panel
                   if (res.unmelded.isNotEmpty)
-                    _buildDeadwoodPanel(res.unmelded, cardW, cardH),
+                    _buildDeadwoodPanel(res.unmelded, cardW, cardH, l10n),
                 ],
               ),
             ),
@@ -396,7 +400,13 @@ class RoundSummaryDialog extends StatelessWidget {
   }
 
   /// Bağımsız Per Kapsülü Bileşeni
-  Widget _buildMeldCapsule(List<CardModel> meld, int meldNumber, double cardW, double cardH) {
+  Widget _buildMeldCapsule(
+    List<CardModel> meld,
+    int meldNumber,
+    double cardW,
+    double cardH,
+    AppLocalizations l10n,
+  ) {
     return Container(
       margin: const EdgeInsets.only(right: 12),
       padding: const EdgeInsets.fromLTRB(5, 4, 5, 5),
@@ -424,7 +434,7 @@ class RoundSummaryDialog extends StatelessWidget {
                 ),
                 const SizedBox(width: 3),
                 Text(
-                  'PER $meldNumber',
+                  l10n.summaryMeldBadge(meldNumber),
                   style: const TextStyle(
                     color: Color(0xFF34D399),
                     fontSize: 9.5,
@@ -455,7 +465,12 @@ class RoundSummaryDialog extends StatelessWidget {
   }
 
   /// Boşta Kalan Kartlar (Deadwood) Paneli Bileşeni
-  Widget _buildDeadwoodPanel(List<CardModel> unmelded, double cardW, double cardH) {
+  Widget _buildDeadwoodPanel(
+    List<CardModel> unmelded,
+    double cardW,
+    double cardH,
+    AppLocalizations l10n,
+  ) {
     return Container(
       margin: const EdgeInsets.only(right: 6),
       padding: const EdgeInsets.fromLTRB(5, 4, 5, 5),
@@ -483,7 +498,7 @@ class RoundSummaryDialog extends StatelessWidget {
                 ),
                 const SizedBox(width: 3),
                 Text(
-                  'BOŞTA (${unmelded.length})',
+                  l10n.summaryDeadwoodBadge(unmelded.length),
                   style: const TextStyle(
                     color: Color(0xFFF87171),
                     fontSize: 9.5,

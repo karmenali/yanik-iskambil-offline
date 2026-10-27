@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../engine/card_model.dart';
 import '../engine/offline_table_controller.dart';
+import '../l10n/l10n_extension.dart';
 import '../services/settings_service.dart';
 import '../services/sound_fx.dart';
 import '../widgets/game_logo_widget.dart';
@@ -40,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
     _isStartingGame = true;
 
     final ctrl = OfflineTableController.instance;
+    final l10n = l10nOf(context);
 
     // Devam eden ve henüz bitmemiş aktif bir oyun varsa onay sor
     if (ctrl.hasActiveMatch) {
@@ -52,14 +54,14 @@ class _HomeScreenState extends State<HomeScreen> {
             borderRadius: BorderRadius.circular(16),
             side: const BorderSide(color: Color(0xFFD4AF37), width: 1.5),
           ),
-          title: const Row(
+          title: Row(
             children: [
-              Icon(Icons.warning_amber_rounded, color: Color(0xFFFDE047), size: 24),
-              SizedBox(width: 8),
+              const Icon(Icons.warning_amber_rounded, color: Color(0xFFFDE047), size: 24),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Yeni Oyun Başlatılsın mı?',
-                  style: TextStyle(
+                  l10n.homeNewGameDialogTitle,
+                  style: const TextStyle(
                     color: Color(0xFFFDE047),
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
@@ -68,17 +70,17 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ],
           ),
-          content: const Text(
-            'Devam eden bir oyununuz var. Yeni oyuna başlarsanız mevcut oyun ve puan durumu sıfırlanacaktır.',
-            style: TextStyle(color: Colors.white, fontSize: 13.5, height: 1.4),
+          content: Text(
+            l10n.homeNewGameDialogContent,
+            style: const TextStyle(color: Colors.white, fontSize: 13.5, height: 1.4),
           ),
           actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(ctx).pop(false),
-              child: const Text(
-                'İptal',
-                style: TextStyle(
+              child: Text(
+                l10n.homeNewGameDialogCancel,
+                style: const TextStyle(
                   color: Colors.white70,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
@@ -94,9 +96,9 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               onPressed: () => Navigator.of(ctx).pop(true),
-              child: const Text(
-                'Yeni Oyuna Başla',
-                style: TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
+              child: Text(
+                l10n.homeNewGameDialogConfirm,
+                style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 14),
               ),
             ),
           ],
@@ -136,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final settings = SettingsService.instance;
     final avatar = VipAvatar.fromKey(settings.playerAvatar);
+    final l10n = l10nOf(context);
 
     return Scaffold(
       backgroundColor: const Color(0xFF05160F),
@@ -224,7 +227,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               // Kurallar Butonu (En az 48x48 dp dokunma alanı)
                               IconButton(
-                                tooltip: 'Kurallar',
+                                tooltip: l10n.homeTooltipRules,
                                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                 onPressed: () => showDialog(
                                   context: context,
@@ -239,7 +242,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
                               // Ayarlar Butonu (En az 48x48 dp dokunma alanı)
                               IconButton(
-                                tooltip: 'Ayarlar',
+                                tooltip: l10n.homeTooltipSettings,
                                 constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                                 onPressed: () => showDialog(
                                   context: context,
@@ -267,7 +270,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              'YANIK İSKAMBİL',
+                              l10n.homeTitle,
                               maxLines: 1,
                               textAlign: TextAlign.center,
                               style: TextStyle(
@@ -323,7 +326,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    settings.isAssisted ? 'Yardımlı Mod' : 'Yardımsız Mod',
+                                    settings.isAssisted ? l10n.homeAssistedMode : l10n.homeUnassistedMode,
                                     style: const TextStyle(
                                       color: Color(0xFFFDE047),
                                       fontWeight: FontWeight.bold,
@@ -348,6 +351,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 28),
                           child: _buildPlayButton(
+                            label: l10n.homePlayButton,
                             onTap: _handlePlayButton,
                           ),
                         ),
@@ -365,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildPlayButton({required VoidCallback onTap}) {
+  Widget _buildPlayButton({required String label, required VoidCallback onTap}) {
     return Container(
       width: double.infinity,
       height: 60,
@@ -390,21 +394,21 @@ class _HomeScreenState extends State<HomeScreen> {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
-          child: const Center(
+          child: Center(
             child: FittedBox(
               fit: BoxFit.scaleDown,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Icon(
+                  const Icon(
                     Icons.play_arrow_rounded,
                     color: Color(0xFFFDE047),
                     size: 34,
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Text(
-                    'OYNA',
-                    style: TextStyle(
+                    label,
+                    style: const TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w900,
                       fontSize: 20,

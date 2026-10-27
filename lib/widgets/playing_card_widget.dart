@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../engine/card_model.dart';
+import '../l10n/l10n_extension.dart';
 import 'vector_card_renderer.dart';
 
 /// Zynga Poker / Bicycle Casino Standartlarında Vektörel İskambil Kağıdı Bileşeni
@@ -201,7 +202,7 @@ class PlayingCardWidget extends StatelessWidget {
                     ],
                   ),
                   child: Text(
-                    'AT & AÇ',
+                    l10nOf(context).tableCardBadgeFinish,
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: (width * 0.12).clamp(6.5, 8.5),

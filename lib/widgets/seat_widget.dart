@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../engine/card_model.dart';
+import '../l10n/l10n_extension.dart';
 
 class SeatWidget extends StatelessWidget {
   final String username;
@@ -26,6 +27,7 @@ class SeatWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final avatar = VipAvatar.fromKey(avatarKey);
+    final l10n = l10nOf(context);
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -149,37 +151,39 @@ class SeatWidget extends StatelessWidget {
                       color: isEliminated
                           ? const Color(0xFF7F1D1D)
                           : const Color(0xFF1E293B),
-                      borderRadius: BorderRadius.circular(6),
-                    ),
-                    child: Text(
-                      isEliminated ? 'YANDI' : 'Ceza: $totalScore',
-                      style: TextStyle(
-                        color: isEliminated
-                            ? const Color(0xFFFCA5A5)
-                            : (totalScore >= 80
-                                ? const Color(0xFFF87171)
-                                : const Color(0xFFFDE047)),
-                        fontSize: 10,
-                        fontWeight: FontWeight.w700,
-                      ),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    isEliminated
+                        ? l10n.tableScoresheetBust
+                        : l10n.tablePlayerPenalty(totalScore),
+                    style: TextStyle(
+                      color: isEliminated
+                          ? const Color(0xFFFCA5A5)
+                          : (totalScore >= 80
+                              ? const Color(0xFFF87171)
+                              : const Color(0xFFFDE047)),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
                     ),
                   ),
-                  if (isBot && !isEliminated) ...[
-                    const SizedBox(width: 6),
-                    Text(
-                      '🎴 $cardCount',
-                      style: const TextStyle(
-                        color: Colors.white70,
-                        fontSize: 10,
-                      ),
+                ),
+                if (isBot && !isEliminated) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '🎴 $cardCount',
+                    style: const TextStyle(
+                      color: Colors.white70,
+                      fontSize: 10,
                     ),
-                  ],
+                  ),
                 ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  );
+}
 }

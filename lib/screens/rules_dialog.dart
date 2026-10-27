@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../l10n/l10n_extension.dart';
 
 class RulesDialog extends StatelessWidget {
   const RulesDialog({super.key});
@@ -7,6 +8,7 @@ class RulesDialog extends StatelessWidget {
   Widget build(BuildContext context) {
     final mediaQuery = MediaQuery.of(context);
     final isCompact = mediaQuery.size.width < 360;
+    final l10n = l10nOf(context);
 
     return Dialog(
       backgroundColor: const Color(0xFF0A2218),
@@ -33,15 +35,15 @@ class RulesDialog extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Expanded(
+                  Expanded(
                     child: Row(
                       children: [
-                        Icon(Icons.menu_book, color: Color(0xFFFDE047), size: 22),
-                        SizedBox(width: 8),
+                        const Icon(Icons.menu_book, color: Color(0xFFFDE047), size: 22),
+                        const SizedBox(width: 8),
                         Flexible(
                           child: Text(
-                            'Nasıl Oynanır? (Kurallar)',
-                            style: TextStyle(
+                            l10n.rulesTitle,
+                            style: const TextStyle(
                               color: Color(0xFFFDE047),
                               fontWeight: FontWeight.w900,
                               fontSize: 17,
@@ -53,7 +55,7 @@ class RulesDialog extends StatelessWidget {
                     ),
                   ),
                   IconButton(
-                    tooltip: 'Kapat',
+                    tooltip: l10n.rulesClose,
                     constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                     onPressed: () => Navigator.pop(context),
                     icon: const Icon(Icons.close, color: Colors.white70),
@@ -70,67 +72,41 @@ class RulesDialog extends StatelessWidget {
                   physics: const BouncingScrollPhysics(),
                   children: [
                     _buildRuleCard(
-                      '🃏 1. Deste, Dağıtım ve Kart Çekme',
-                      '• Oyun 2 tam deste (104 kart) + 2 Fiziksel Joker olmak üzere toplam 106 kağıtla oynanır.\n'
-                      '• Her oyuncuya 10\'ar kart dağıtılır.\n'
-                      '• Kart çekme YALNIZCA ortadaki kapalı desteden yapılır. Yanık İskambil\'de yerden kart çekilemez.',
+                      l10n.rulesSection1Title,
+                      l10n.rulesSection1Body,
                     ),
                     _buildRuleCard(
-                      '👑 2. Jokerler (Gösterge & Fiziksel Joker)',
-                      '• Dağıtım sonunda açılan Gösterge kartının sayı değeri o turun "Gösterge Jokeri" olur.\n'
-                      '• Her iki destedeki bu sayıdaki tüm kartlar (8 adet) ve 2 Fiziksel Joker ile toplam 10 joker bulunur.\n'
-                      '• Jokerler her per ve seride eksik kart yerine geçebilir.\n'
-                      '• 3 veya daha fazla Joker tek başına bağımsız bir per oluşturabilir.\n'
-                      '• DİKKAT: Tur sonunda per yapamayıp elinizde boşta kalan her Joker tam 25 ceza puanı yazar!',
+                      l10n.rulesSection2Title,
+                      l10n.rulesSection2Body,
                     ),
                     _buildRuleCard(
-                      '📐 3. Geçerli Perler (Setler ve Seriler)',
-                      'Kartlar en az 3\'erli gruplar halinde per yapılabilir:\n'
-                      '• Grup Per (Set): Aynı sayı değerine sahip, FARKLI sembollerde en az 3 veya 4 kart (Örn: ♠K, ♦K, ♣K veya ♥8, ♠8, ♦8, ♣8). Aynı renkten çift kart aynı sete konulamaz.\n'
-                      '• Seri Per (Run): Aynı sembolde ardışık en az 3 kart (Örn: ♥7, ♥8, ♥9, ♥10).\n'
-                      '• As (A): Serinin başında (A-2-3) veya sonunda (J-Q-K-A) yer alabilir; ancak döngüsel olamaz (K-A-2 geçersizdir).',
+                      l10n.rulesSection3Title,
+                      l10n.rulesSection3Body,
                     ),
                     _buildRuleCard(
-                      '🏆 4. El Açma ve Bitiş Kuralları',
-                      '• Turunuzda kapalı desteden 1 kart çekerek 11 karta ulaşırsınız.\n'
-                      '• Elinizdeki 10 kartı geçerli perler halinde bağlayıp 11. kartı masaya atarak "EL AÇ / BİTİR" yapabilirsiniz.\n'
-                      '• Eli meşru açıp bitiren oyuncu o turda 0 CEZA PUANI alır.\n'
-                      '• Diğer oyuncular ise per yapamadıkları boşta kalan kartlarının ceza puanlarını alır.',
+                      l10n.rulesSection4Title,
+                      l10n.rulesSection4Body,
                     ),
                     _buildRuleCard(
-                      '💡 5. Örnek Kazanan El Senaryosu',
-                      '10 meldelenmiş kart + 1 atılacak kart:\n'
-                      '• 1. Istaka Sırası: [♠8, ♥8, ♦8] (3\'lü Grup Per)\n'
-                      '• 2. Istaka Sırası: [♣4, ♣5, ♣6, ♣7] (4\'lü Seri Per)\n'
-                      '• 3. Istaka Sırası: [♥J, ♥Q, ♥K] (3\'lü Seri Per)\n'
-                      '• Masaya Atılacak Kart: [♦2] (Boşta kalan 11. kart)\n'
-                      'Sonuç: 10 kart perlere bağlı, 11. kart masaya atılarak el başarıyla biter!',
+                      l10n.rulesSection5Title,
+                      l10n.rulesSection5Body,
                       accent: true,
                     ),
                     _buildRuleCard(
-                      '✨ 6. Yardımlı Mod vs 🔥 Yardımsız Mod',
-                      '• Yardımlı Mod: Perleriniz yeşil etiketlerle (✓ PER) ve elinizdeki anlık ceza puanı otomatik gösterilir. Bitiş için en uygun atılacak kart sistem tarafından desteklenir.\n'
-                      '• Yardımsız Mod: Hiçbir per veya ceza ipucu verilmez! Istakanızdaki sıralama tamamen sizin dikkatinize aittir.\n'
-                      '• ÖNEMLİ (Hatalı Açma Riski): Yardımsız modda eliniz geçerli olmadan hatalı el açarsanız DİREKT 101 CEZA ile yanarsınız; diğer tüm oyuncular 0 ceza alır!',
+                      l10n.rulesSection6Title,
+                      l10n.rulesSection6Body,
                     ),
                     _buildRuleCard(
-                      '🔢 7. Ceza Puanları ve 101 Barajı',
-                      'Per yapılmayan boşta kalan kartların ceza değerleri:\n'
-                      '• As (A) = 10 puan\n'
-                      '• Papaz (K), Kız (Q), Vale (J) = 10 puan\n'
-                      '• 2 .. 10 = Kartın kendi rakam değeri\n'
-                      '• Joker = 25 puan\n'
-                      '• Toplam ceza puanı 101 veya üzerine çıkan oyuncu YANAR ve masadan elenir. Elenen oyuncular turlarda pas geçilir.',
+                      l10n.rulesSection7Title,
+                      l10n.rulesSection7Body,
                     ),
                     _buildRuleCard(
-                      '🔄 8. Deste Tükenmesi (Beraberlik)',
-                      '• 106 kağıtlık kapalı çekme destesi tamamen biter ve kimse elini açamamışsa tur berabere tamamlanır.\n'
-                      '• Tüm oyuncular ellerindeki per dışı kartların ceza puanlarını hanelerine yazdırır.',
+                      l10n.rulesSection8Title,
+                      l10n.rulesSection8Body,
                     ),
                     _buildRuleCard(
-                      '🥇 9. Masanın Şampiyonu',
-                      '• Yanık İskambil hayatta kalma oyunudur. Rakipler 101 ceza barajını aşarak elendikçe oyun devam eder.\n'
-                      '• Masada ayakta kalan son oyuncu oyunun ŞAMPİYONU olur!',
+                      l10n.rulesSection9Title,
+                      l10n.rulesSection9Body,
                     ),
                   ],
                 ),
@@ -151,9 +127,9 @@ class RulesDialog extends StatelessWidget {
                     ),
                   ),
                   onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'ANLADIM',
-                    style: TextStyle(
+                  child: Text(
+                    l10n.rulesUnderstandButton,
+                    style: const TextStyle(
                       fontWeight: FontWeight.w900,
                       fontSize: 15,
                       letterSpacing: 0.5,

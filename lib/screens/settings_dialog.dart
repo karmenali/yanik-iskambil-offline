@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../engine/card_model.dart';
+import '../l10n/l10n_extension.dart';
 import '../services/settings_service.dart';
 
 class SettingsDialog extends StatefulWidget {
@@ -35,6 +36,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = l10nOf(context);
+    final currentLocale = SettingsService.instance.locale;
+
     return Dialog(
       backgroundColor: const Color(0xFF0A2218),
       shape: RoundedRectangleBorder(
@@ -53,22 +57,27 @@ class _SettingsDialogState extends State<SettingsDialog> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Row(
-                    children: [
-                      Icon(Icons.settings, color: Color(0xFFFDE047), size: 24),
-                      SizedBox(width: 8),
-                      Text(
-                        'Oyun Ayarları',
-                        style: TextStyle(
-                          color: Color(0xFFFDE047),
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        const Icon(Icons.settings, color: Color(0xFFFDE047), size: 24),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            l10n.settingsTitle,
+                            style: const TextStyle(
+                              color: Color(0xFFFDE047),
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                   IconButton(
-                    tooltip: 'Kapat',
+                    tooltip: l10n.settingsClose,
                     constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
                     icon: const Icon(Icons.close, color: Colors.white70),
                     onPressed: () => Navigator.of(context).pop(),
@@ -78,10 +87,50 @@ class _SettingsDialogState extends State<SettingsDialog> {
               const Divider(color: Colors.white24),
               const SizedBox(height: 12),
 
-              // 1. OYUN MODU SEÇİMİ (YARDIMLI / YARDIMSIZ)
-              const Text(
-                '🎮 OYUN MODU',
-                style: TextStyle(
+              // 1. DİL SEÇİMİ / LANGUAGE
+              Text(
+                l10n.settingsLanguageSection,
+                style: const TextStyle(
+                  color: Color(0xFFD4AF37),
+                  fontWeight: FontWeight.bold,
+                  fontSize: 13,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildLanguageOption(
+                      flag: '🇹🇷',
+                      label: l10n.settingsLanguageTr,
+                      isSelected: currentLocale.languageCode == 'tr',
+                      onTap: () async {
+                        await SettingsService.instance.setLanguageCode('tr');
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: _buildLanguageOption(
+                      flag: '🇬🇧',
+                      label: l10n.settingsLanguageEn,
+                      isSelected: currentLocale.languageCode == 'en',
+                      onTap: () async {
+                        await SettingsService.instance.setLanguageCode('en');
+                        setState(() {});
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // 2. OYUN MODU SEÇİMİ (YARDIMLI / YARDIMSIZ)
+              Text(
+                l10n.settingsGameModeSection,
+                style: const TextStyle(
                   color: Color(0xFFD4AF37),
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -92,9 +141,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
               // Yardımlı Mod Seçeneği
               _buildModeOption(
-                title: '✨ Yardımlı Mod (Tavsiye Edilen)',
-                subtitle:
-                    'Geçerli perleriniz (✓) ve elinizdeki toplam ceza sayısı canlı gösterilir. Otomatik per kontrolü açıktır.',
+                title: l10n.settingsAssistedTitle,
+                subtitle: l10n.settingsAssistedDesc,
                 isSelected: _isAssisted,
                 onTap: () async {
                   setState(() => _isAssisted = true);
@@ -105,9 +153,8 @@ class _SettingsDialogState extends State<SettingsDialog> {
 
               // Yardımsız Mod Seçeneği
               _buildModeOption(
-                title: '🔥 Yardımsız Usta Modu',
-                subtitle:
-                    'Hiçbir per veya ceza ipucu verilmez! Saf tecrübe ve dikkat. Hatalı el açan oyuncu direkt 101 puan ile yanar.',
+                title: l10n.settingsUnassistedTitle,
+                subtitle: l10n.settingsUnassistedDesc,
                 isSelected: !_isAssisted,
                 onTap: () async {
                   setState(() => _isAssisted = false);
@@ -116,10 +163,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
               const SizedBox(height: 20),
 
-              // 2. SES VE TİTREŞİM AYARLARI
-              const Text(
-                '🔊 SES & TİTREŞİM',
-                style: TextStyle(
+              // 3. SES VE TİTREŞİM AYARLARI
+              Text(
+                l10n.settingsSoundSection,
+                style: const TextStyle(
                   color: Color(0xFFD4AF37),
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -131,9 +178,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: const Color(0xFFD4AF37),
-                title: const Text(
-                  'Kart ve Oyun Sesleri',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
+                title: Text(
+                  l10n.settingsSoundEffects,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 value: _soundEnabled,
                 onChanged: (val) async {
@@ -144,9 +191,9 @@ class _SettingsDialogState extends State<SettingsDialog> {
               SwitchListTile(
                 contentPadding: EdgeInsets.zero,
                 activeThumbColor: const Color(0xFFD4AF37),
-                title: const Text(
-                  'Titreşim Bildirimleri',
-                  style: TextStyle(color: Colors.white, fontSize: 14),
+                title: Text(
+                  l10n.settingsVibration,
+                  style: const TextStyle(color: Colors.white, fontSize: 14),
                 ),
                 value: _vibrationEnabled,
                 onChanged: (val) async {
@@ -156,10 +203,10 @@ class _SettingsDialogState extends State<SettingsDialog> {
               ),
               const SizedBox(height: 16),
 
-              // 3. OYUNCU PROFİLİ
-              const Text(
-                '👤 OYUNCU PROFİLİ',
-                style: TextStyle(
+              // 4. OYUNCU PROFİLİ
+              Text(
+                l10n.settingsProfileSection,
+                style: const TextStyle(
                   color: Color(0xFFD4AF37),
                   fontWeight: FontWeight.bold,
                   fontSize: 13,
@@ -172,7 +219,7 @@ class _SettingsDialogState extends State<SettingsDialog> {
                 controller: _nameCtrl,
                 style: const TextStyle(color: Colors.white, fontSize: 14),
                 decoration: InputDecoration(
-                  labelText: 'Oyuncu Adı',
+                  labelText: l10n.settingsPlayerNameLabel,
                   labelStyle: const TextStyle(color: Colors.white60),
                   filled: true,
                   fillColor: Colors.black26,
@@ -246,14 +293,56 @@ class _SettingsDialogState extends State<SettingsDialog> {
                     ),
                   ),
                   onPressed: () => Navigator.of(context).pop(),
-                  child: const Text(
-                    'KAYDET VE DÖN',
-                    style: TextStyle(fontWeight: FontWeight.bold),
+                  child: Text(
+                    l10n.settingsSaveButton,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLanguageOption({
+    required String flag,
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF133827) : Colors.black26,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: isSelected ? const Color(0xFFD4AF37) : Colors.white12,
+            width: isSelected ? 1.8 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(flag, style: const TextStyle(fontSize: 16)),
+            const SizedBox(width: 6),
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  style: TextStyle(
+                    color: isSelected ? const Color(0xFFFDE047) : Colors.white,
+                    fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );

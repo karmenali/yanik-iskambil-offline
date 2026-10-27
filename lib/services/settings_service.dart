@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -10,18 +11,21 @@ class SettingsService extends ChangeNotifier {
   static const String _keyVibration = 'yanik_offline_vibration';
   static const String _keyPlayerName = 'yanik_offline_player_name';
   static const String _keyPlayerAvatar = 'yanik_offline_player_avatar';
+  static const String _keyLanguage = 'yanik_offline_language';
 
   bool _isAssisted = true; // true = Yardımlı Mod (varsayılan), false = Yardımsız Mod
   bool _soundEnabled = true;
   bool _vibrationEnabled = false; // Kayıtlı tercih yoksa varsayılan KAPALI
   String _playerName = 'Oyuncu';
   String _playerAvatar = 'lion';
+  Locale _locale = const Locale('tr');
 
   bool get isAssisted => _isAssisted;
   bool get soundEnabled => _soundEnabled;
   bool get vibrationEnabled => _vibrationEnabled;
   String get playerName => _playerName;
   String get playerAvatar => _playerAvatar;
+  Locale get locale => _locale;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
@@ -30,7 +34,27 @@ class SettingsService extends ChangeNotifier {
     _vibrationEnabled = prefs.getBool(_keyVibration) ?? false;
     _playerName = prefs.getString(_keyPlayerName) ?? 'Oyuncu';
     _playerAvatar = prefs.getString(_keyPlayerAvatar) ?? 'lion';
+
+    final savedLang = prefs.getString(_keyLanguage);
+    if (savedLang != null && savedLang.isNotEmpty) {
+      _locale = Locale(savedLang);
+    } else {
+      _locale = const Locale('tr');
+    }
+
     notifyListeners();
+  }
+
+  Future<void> setLocale(Locale newLocale) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyLanguage, newLocale.languageCode);
+    if (_locale == newLocale) return;
+    _locale = newLocale;
+    notifyListeners();
+  }
+
+  Future<void> setLanguageCode(String code) async {
+    await setLocale(Locale(code));
   }
 
   Future<void> setAssisted(bool value) async {
