@@ -1,0 +1,10 @@
+# Yanık İskambil Offline — app-ads.txt
+#
+# DİKKAT: Google Play geliştirici kimlik doğrulamanız ve AdMob hesabınız tamamlandığında,
+# aşağıdaki 'pub-XXXXXXXXXXXXXXXX' yer tutucusunu kendi gerçek AdMob Yayıncı Kimliğiniz (Publisher ID) ile değiştirin.
+# Bu dosyayı Google Play Console mağaza girişinizde belirttiğiniz geliştirici web sitesinin kök dizinine yükleyin:
+# Örnek: https://alanadiniz.com/app-ads.txt
+#
+# Format: <Reklam Sistemi Alanı>, <Yayıncı Hesap Kimliği>, <İlişki Türü>, <Sertifika Otoritesi Kimliği>
+
+google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0

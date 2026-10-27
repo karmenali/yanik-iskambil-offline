@@ -129,7 +129,12 @@ class RoundSummaryDialog extends StatelessWidget {
                                 ),
                                 onPressed: () {
                                   Navigator.of(context).pop();
-                                  onMainMenu?.call();
+                                  AdService.instance.showInterstitialAd(
+                                    roundNumber: roundNumber,
+                                    onDismissed: () {
+                                      onMainMenu?.call();
+                                    },
+                                  );
                                 },
                                 child: const FittedBox(
                                   fit: BoxFit.scaleDown,
@@ -175,6 +180,7 @@ class RoundSummaryDialog extends StatelessWidget {
                                 onPressed: () {
                                   Navigator.of(context).pop();
                                   AdService.instance.showInterstitialAd(
+                                    roundNumber: roundNumber,
                                     onDismissed: () {
                                       if (onPlayAgain != null) {
                                         onPlayAgain!();
@@ -222,6 +228,7 @@ class RoundSummaryDialog extends StatelessWidget {
                           onPressed: () {
                             Navigator.of(context).pop();
                             AdService.instance.showInterstitialAd(
+                              roundNumber: roundNumber,
                               onDismissed: onContinue,
                             );
                           },
