@@ -35,6 +35,7 @@ class AdService {
   int get completedRoundsCount => _completedRoundsCount;
   int? get lastProcessedRound => _lastProcessedRound;
   bool get isShowingAd => _isShowingAd;
+  bool get isMobileAdsInitialized => _isMobileAdsInitialized;
 
   @visibleForTesting
   void resetCompletedRoundsCount() {
@@ -51,6 +52,11 @@ class AdService {
   @visibleForTesting
   void setLastProcessedRound(int? round) {
     _lastProcessedRound = round;
+  }
+
+  @visibleForTesting
+  void setIsShowingAd(bool val) {
+    _isShowingAd = val;
   }
 
   /// 1. Rıza Bilgisini Güncelleme ve UMP Akışı

@@ -127,5 +127,32 @@ void main() {
       expect(callbackCalled, isTrue);
       expect(service.lastProcessedRound, equals(6));
     });
+
+    test('UMP Consent & Initialization Guard: loadInterstitialAd safely blocked when uninitialized', () {
+      final service = AdService.instance;
+      // AdMob rıza onayı alınmadan önce _isMobileAdsInitialized false olmalıdır
+      expect(service.isMobileAdsInitialized, isFalse);
+
+      // Başlatılmamış serviste loadInterstitialAd çağrıldığında çökmemeli ve ağ isteği açmamalıdır
+      expect(() => service.loadInterstitialAd(), returnsNormally);
+    });
+
+    test('Concurrent Display Guard: isShowingAd active prevents duplicate ad display', () {
+      final service = AdService.instance;
+      service.setCompletedRoundsCount(2);
+      service.setIsShowingAd(true);
+
+      int dismissedCount = 0;
+      service.showInterstitialAd(
+        roundNumber: 7,
+        onDismissed: () {
+          dismissedCount++;
+        },
+      );
+
+      // Reklam zaten ekranda olduğu için callback hemen çalışmalı fakat sayaç artmamalıdır
+      expect(dismissedCount, equals(1));
+      expect(service.completedRoundsCount, equals(2));
+    });
   });
 }
